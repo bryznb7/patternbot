@@ -1,0 +1,16 @@
+{
+  "name": "binance-perp-engulfing-bot",
+  "version": "1.0.0",
+  "description": "Scan Binance USDT perpetuals for 4h bullish/bearish engulfing and notify via Discord embed",
+  "main": "bot.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node bot.js"
+  },
+  "dependencies": {
+    "axios": "^1.13.0",
+    "dotenv": "^16.6.1",
+    "p-limit": "^4.0.0",
+    "ws": "^8.18.3"
+  }
+}
