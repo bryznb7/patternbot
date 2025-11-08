@@ -225,6 +225,8 @@ function startWebSocketConnection(symbolsChunk, index) {
 
   ws.on('close', () => {
     log('WebSocket closed. Reconnecting in 5s...');
+    matches.length = 0;
+    neutralCount = 0;
     setTimeout(startWebSocketScan, 5000);
   });
 
