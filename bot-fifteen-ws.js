@@ -23,18 +23,19 @@ function classifyCandle(c) {
   if (lowerShadow > 2 * body && upperShadow <= 1.5 * body) {
     if (close > open) return 'hammer';
     else if (close < open) return 'hanging_man';
-    else return 'doji';
   }
 
   if (upperShadow > 2 * body && lowerShadow <= 1.5 * body) {
     if (close > open) return 'inverted_hammer';
     else if (close < open) return 'shooting_star';
-    else return 'doji';
   }
 
   const bodyRatio = body / totalRange;
-  if (close > open && bodyRatio >= 0.7) return 'long_green';
-  if (close < open && bodyRatio >= 0.7) return 'long_red';
+  if (close > open && bodyRatio >= 0.7) return 'big_green';
+  if (close < open && bodyRatio >= 0.7) return 'big_red';
+
+  if (close > open && bodyRatio >= 0.5) return 'small_green';
+  if (close < open && bodyRatio >= 0.5) return 'small_red';
 
   return 'neutral';
 }
@@ -72,19 +73,22 @@ async function sendDiscordEmbed(matches) {
     hanging_man: '⚒️',
     inverted_hammer: '🔧',
     shooting_star: '🌟',
-    long_green: '🟢',
-    long_red: '🔴',
-    doji: '⚪'
+    big_green: '🟢',
+    big_red: '🔴',
+    small_green: '🟩',
+    small_red: '🟥'
   };
 
   const colorMap = {
-    long_green: 0x00FF2F,
-    long_red: 0xFF0000,
+    big_green: 0x00FF2F,
+    small_green: 0x00FF2F,
+    big_red: 0xFF0000,
+    small_red: 0xFF0000,
     hammer: 0x00FF2F,
     hanging_man: 0xFF0000,
     inverted_hammer: 0x00FF2F,
     shooting_star: 0xFF0000,
-    doji: 0xFFFFFF
+
   };
 
   log(`Neutral candlestick count: ${neutralCount}`);
@@ -107,11 +111,13 @@ async function sendDiscordEmbed(matches) {
 
   const candleOrder = [
     'inverted_hammer',
-    'long_green',
+    'big_green',
+    'small_green',
     'hammer',
     'doji',
     'shooting_star',
-    'long_red',
+    'big_red',
+    'small_red',
     'hanging_man',
   ];
 
@@ -207,8 +213,6 @@ function startWebSocketConnection(symbolsChunk, index) {
 
   ws.on('close', () => {
     log(`WebSocket [${index}] closed. Reconnecting in 5s...`);
-    matches.length = 0;
-    neutralCount = 0;
     setTimeout(() => startWebSocketConnection(symbolsChunk, index), 5000);
   });
 
