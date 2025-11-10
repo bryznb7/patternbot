@@ -88,7 +88,6 @@ async function sendDiscordEmbed(matches) {
     hanging_man: 0xFF0000,
     inverted_hammer: 0x00FF2F,
     shooting_star: 0xFF0000,
-
   };
 
   log(`Neutral candlestick count: ${neutralCount}`);

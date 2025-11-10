@@ -114,11 +114,13 @@ async function sendDiscordEmbed(matches) {
 
     const candleOrder = [
         'inverted_hammer',
-        'long_green',
+        'big_green',
+        'small_green',
         'hammer',
         'doji',
         'shooting_star',
-        'long_red',
+        'big_red',
+        'small_red',
         'hanging_man',
     ];
 
