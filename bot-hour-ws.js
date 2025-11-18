@@ -8,13 +8,18 @@ const BINANCE_WS_BASE = 'wss://fstream.binance.com/stream?streams=';
 const matches = [];
 let neutralCount = 0;
 
+const VOLUME_WINDOW = 13;
+const volumeHistory = {};
+
+const EMA_LEVELS = [12, 21, 30, 50, 100, 200];
+const emaState = {};
+
 function log(msg) {
-  const taipeiTime = new Date().toLocaleString('en-US', {
-    timeZone: 'Asia/Taipei',
-  });
+  const taipeiTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' });
   console.log(`[${taipeiTime}] ${msg}`);
 }
 
+// ---------------- Candlestick Classification ----------------
 function classifyCandle(c) {
   const { open, high, low, close } = c;
   const body = Math.abs(close - open);
@@ -42,6 +47,51 @@ function classifyCandle(c) {
   return 'neutral';
 }
 
+// ---------------- EMA Calculation ----------------
+function calculateEMA(symbol, close) {
+  if (!emaState[symbol]) {
+    emaState[symbol] = {};
+    EMA_LEVELS.forEach(len => {
+      emaState[symbol][len] = close; // initialize with first close
+    });
+  }
+
+  EMA_LEVELS.forEach(len => {
+    const k = 2 / (len + 1);
+    emaState[symbol][len] = close * k + emaState[symbol][len] * (1 - k);
+  });
+
+  return { ...emaState[symbol] };
+}
+
+// ---------------- Wick Hit Detection ----------------
+function detectWickTouch(candle, symbol) {
+  if (!emaState[symbol]) return [];
+
+  const open = candle.open;
+  const close = candle.close;
+  const high = candle.high;
+  const low = candle.low;
+  const bodyHigh = Math.max(open, close);
+  const bodyLow = Math.min(open, close);
+
+  const hitEMAs = [];
+
+  EMA_LEVELS.forEach(ema => {
+    const emaValue = emaState[symbol][ema];
+    if (!emaValue) return;
+
+    // Upper wick hit
+    if (high >= emaValue && emaValue >= bodyHigh) hitEMAs.push(ema);
+
+    // Lower wick hit
+    if (low <= emaValue && emaValue <= bodyLow) hitEMAs.push(ema);
+  });
+
+  return hitEMAs; // return array of all EMAs hit
+}
+
+// ---------------- Fetch Symbols ----------------
 async function fetchBinancePerpSymbols() {
   const url = 'https://fapi.binance.com/fapi/v1/exchangeInfo';
   const resp = await axios.get(url, { timeout: 30000 });
@@ -50,6 +100,7 @@ async function fetchBinancePerpSymbols() {
     .map(s => s.symbol.toLowerCase());
 }
 
+// ---------------- Text Chunking for Discord ----------------
 function chunkTextByLine(text, maxLength = 1024) {
   const lines = text.split('\n');
   const chunks = [];
@@ -67,6 +118,7 @@ function chunkTextByLine(text, maxLength = 1024) {
   return chunks;
 }
 
+// ---------------- Discord Embed ----------------
 async function sendDiscordEmbed(matches) {
   if (!DISCORD_WEBHOOK_URL15 || !matches.length) return;
 
@@ -98,9 +150,7 @@ async function sendDiscordEmbed(matches) {
   const grouped = {};
   const typeOpenTime = {};
   for (const m of matches) {
-    const formattedTime = new Date(m.curr.openTime).toLocaleString('en-US', {
-      timeZone: 'Asia/Taipei',
-    });
+    const formattedTime = new Date(m.curr.openTime).toLocaleString('en-US', {timeZone: 'Asia/Taipei'});
     if (!grouped[m.type]) grouped[m.type] = [];
     grouped[m.type].push({
       symbol: m.symbol.toUpperCase(),
@@ -108,7 +158,10 @@ async function sendDiscordEmbed(matches) {
       high: m.curr.high,
       low: m.curr.low,
       close: m.curr.close,
-      volume: m.curr.volume
+      volume: m.curr.volume,
+      avgVolume: m.avgVolume || 0,
+      volumeSpike: m.volumeSpike || 1.0,
+      emaHit: m.emaHit
     });
     if (!typeOpenTime[m.type]) typeOpenTime[m.type] = formattedTime;
   }
@@ -118,7 +171,6 @@ async function sendDiscordEmbed(matches) {
     'big_green',
     'small_green',
     'hammer',
-    'doji',
     'shooting_star',
     'big_red',
     'small_red',
@@ -138,13 +190,15 @@ async function sendDiscordEmbed(matches) {
       .map(e => {
         const changePercent = ((e.close - e.open) / e.open) * 100;
         const rangePercent = ((e.high - e.low) / e.open) * 100;
-
         const changeStr = changePercent >= 0
           ? `+${changePercent.toFixed(2)}%`
           : `${changePercent.toFixed(2)}%`;
+        const volumeM = e.volume / 1_000_000.0;
+        const avgM = e.avgVolume / 1_000_000.0;
+        const spikeStr = e.volumeSpike ? `${e.volumeSpike.toFixed(2)}x` : '1.00x';
+        const emaInfo = (e.emaHit && e.emaHit.length > 1) ? `EMA Hit: ${e.emaHit.join(', ')}` : '';
 
-        const volumeM = e.volume / 1000000.0;
-        return `**${e.symbol}**\nVolume: ${volumeM.toFixed(2)}M | Change: ${changeStr} | Range: ${rangePercent.toFixed(2)}%`;
+        return `**${e.symbol}**\nVol: ${volumeM.toFixed(2)}M (Avg ${avgM.toFixed(2)}M) | Spike: ${spikeStr}\nChange: ${changeStr} | Range: ${rangePercent.toFixed(2)}%${emaInfo ? '\n' + emaInfo : ''}`;
       })
       .join('\n');
 
@@ -170,6 +224,108 @@ async function sendDiscordEmbed(matches) {
   }
 }
 
+// ---------------- Volume Spike ----------------
+function recordVolumeAndComputeSpike(symbol, quoteVolume) {
+  const s = symbol.toUpperCase();
+  if (!volumeHistory[s]) volumeHistory[s] = [];
+  volumeHistory[s].push(quoteVolume);
+  if (volumeHistory[s].length > VOLUME_WINDOW) {
+    volumeHistory[s].shift();
+  }
+
+  const arr = volumeHistory[s];
+  const sum = arr.reduce((a, b) => a + b, 0);
+  const avg = arr.length ? sum / arr.length : 0;
+  return { avgVolume: avg, currentVolume: quoteVolume, volumeSpike: avg > 0 ? (quoteVolume / avg) : 1.0 };
+}
+
+// ---------------- Preload Volume & EMA History ----------------
+async function preloadVolumeHistory(symbol) {
+  const s = symbol.toUpperCase();
+  if (!volumeHistory[s]) volumeHistory[s] = [];
+
+  try {
+    const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${s}&interval=1h&limit=${VOLUME_WINDOW}`;
+    const resp = await axios.get(url, { timeout: 30000 });
+    const klines = resp.data;
+    const volumes = klines.slice(0, -1).map(k => parseFloat(k[7]));
+    volumeHistory[s] = volumes;
+  } catch (err) {
+    log(`Failed to preload volume history for ${s}: ${err.message}`);
+  }
+}
+
+async function preloadEMAHistory(symbol) {
+  const s = symbol.toUpperCase();
+  try {
+    const url = `https://fapi.binance.com/fapi/v1/klines?symbol=${s}&interval=1h&limit=${Math.max(...EMA_LEVELS)}`;
+    const resp = await axios.get(url, { timeout: 30000 });
+    const klines = resp.data;
+    klines.forEach(k => {
+      const close = parseFloat(k[4]);
+      calculateEMA(s, close);
+    });
+  } catch (err) {
+    log(`Failed to preload EMA for ${s}: ${err.message}`);
+  }
+}
+
+// ---------------- WebSocket ----------------
+function startWebSocketConnection(symbolsChunk, index) {
+  const streamPath = symbolsChunk.map(s => `${s}@kline_1h`).join('/');
+  const wsUrl = BINANCE_WS_BASE + streamPath;
+  const ws = new WebSocket(wsUrl);
+
+  ws.on('open', () => log(`WebSocket [${index}] opened for ${symbolsChunk.length} symbols`));
+
+  ws.on('message', (msg) => {
+    try {
+      const data = JSON.parse(msg);
+      if (!data.data?.k) return;
+      const k = data.data.k;
+      if (!k.x) return;
+
+      const candle = {
+        openTime: k.t,
+        open: parseFloat(k.o),
+        high: parseFloat(k.h),
+        low: parseFloat(k.l),
+        close: parseFloat(k.c),
+        volume: parseFloat(k.q)
+      };
+
+      const symbol = k.s;
+      const { avgVolume, volumeSpike } = recordVolumeAndComputeSpike(symbol, candle.volume);
+      calculateEMA(symbol, candle.close); // Update EMA
+      const type = classifyCandle(candle);
+      const emaHit = detectWickTouch(candle, symbol);
+
+      if (type === 'neutral') {
+        neutralCount += 1;
+      } else {
+        matches.push({
+          symbol,
+          type,
+          curr: candle,
+          avgVolume,
+          volumeSpike,
+          emaHit
+        });
+      }
+    } catch (err) {
+      log('Error parsing WS message: ' + (err.message || err));
+    }
+  });
+
+  ws.on('close', () => {
+    log(`WebSocket [${index}] closed. Reconnecting in 5s...`);
+    setTimeout(() => startWebSocketConnection(symbolsChunk, index), 5000);
+  });
+
+  ws.on('error', (err) => log(`WebSocket [${index}] error: ${err.message}`));
+}
+
+// ---------------- Discord Scheduler ----------------
 function scheduleDiscordSend() {
   const now = new Date();
   const taipeiHour = (now.getUTCHours() + 8) % 24;
@@ -186,51 +342,21 @@ function scheduleDiscordSend() {
       log('No matches found.');
     }
     scheduleDiscordSend();
-  }, msToNextHour + 60000);
+  }, msToNextHour + 90000);
   log(`Wait ${Math.round(msToNextHour / (1000 * 60))}-min for the next candle`);
 }
 
-function startWebSocketConnection(symbolsChunk, index) {
-  const streamPath = symbolsChunk.map(s => `${s}@kline_1h`).join('/');
-  const wsUrl = BINANCE_WS_BASE + streamPath;
-  const ws = new WebSocket(wsUrl);
-
-  ws.on('open', () => log(`WebSocket [${index}] opened for ${symbolsChunk.length} symbols`));
-
-  ws.on('message', (msg) => {
-    const data = JSON.parse(msg);
-    if (!data.data?.k) return;
-    const k = data.data.k;
-    if (!k.x) return; // only closed candles
-
-    const candle = {
-      openTime: k.t,
-      open: parseFloat(k.o),
-      high: parseFloat(k.h),
-      low: parseFloat(k.l),
-      close: parseFloat(k.c),
-      volume: parseFloat(k.q)
-    };
-
-    const type = classifyCandle(candle);
-    if (type === 'neutral') {
-      neutralCount += 1;
-    } else {
-      matches.push({ symbol: k.s, type, curr: candle });
-    }
-  });
-
-  ws.on('close', () => {
-    log(`WebSocket [${index}] closed. Reconnecting in 5s...`);
-    setTimeout(() => startWebSocketConnection(symbolsChunk, index), 5000);
-  });
-
-  ws.on('error', (err) => log(`WebSocket error: ${err.message}`));
-}
-
+// ---------------- Start Bot ----------------
 async function startWebSocketScan() {
   const symbols = await fetchBinancePerpSymbols();
   log(`Fetched ${symbols.length} perpetual USDT symbols.`);
+
+  // Preload volume and EMA history in batches
+  for (let i = 0; i < symbols.length; i += 5) {
+    const batch = symbols.slice(i, i + 5);
+    await Promise.all(batch.map(s => preloadVolumeHistory(s)));
+    await Promise.all(batch.map(s => preloadEMAHistory(s)));
+  }
 
   const chunkSize = Math.ceil(symbols.length / 3);
   for (let i = 0; i < symbols.length; i += chunkSize) {
@@ -246,4 +372,3 @@ async function startWebSocketScan() {
   log('Starting Binance Perpetual 1hr Candle Bot');
   await startWebSocketScan();
 })();
-

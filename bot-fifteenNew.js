@@ -8,15 +8,11 @@ const BINANCE_WS_BASE = 'wss://fstream.binance.com/stream?streams=';
 const matches = [];
 let neutralCount = 0;
 
-// ---------- Volume spike state ----------
 const VOLUME_WINDOW = 13;
-const volumeHistory = {}; // { SYMBOL: [quoteVolume1, quoteVolume2, ...] }
-// ----------------------------------------
+const volumeHistory = {}; 
 
-// ---------- EMA state ----------
 const EMA_LEVELS = [12, 21, 30, 50, 100, 200];
-const emaState = {}; // { SYMBOL: { 12: val, 21: val, 50: val, 200: val } }
-// ----------------------------------------
+const emaState = {}; 
 
 function log(msg) {
   const taipeiTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' });
@@ -346,7 +342,7 @@ function scheduleDiscordSend() {
     }
     neutralCount = 0;
     scheduleDiscordSend();
-  }, msToNext15 + 60000);
+  }, msToNext15 + 90000);
 
   log(`Wait ${Math.round(msToNext15 / (1000 * 60))}-min for the next candle`);
 }

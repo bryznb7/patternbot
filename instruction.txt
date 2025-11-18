@@ -1,1 +1,1 @@
-rm bot-daily-ws.js bot-weekly-ws.js bot-monthly-ws.js bot-hour-ws.js bot-fourhr-ws.js bot-fifteen-ws.js
+rm bot-daily-ws.js bot-weekly-ws.js bot-monthly-ws.js bot-hour-ws.js bot-fourhr-ws.js
