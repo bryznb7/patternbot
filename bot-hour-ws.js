@@ -22,12 +22,12 @@ function classifyCandle(c) {
   const lowerShadow = Math.min(open, close) - low;
   const totalRange = high - low;
 
-  if (lowerShadow > 2 * body && upperShadow <= 1.5 * body) {
+  if (lowerShadow > 0.7 * body && upperShadow < 0.5 * body) {
     if (close > open) return 'hammer';
     else if (close < open) return 'hanging_man';
   }
 
-  if (upperShadow > 2 * body && lowerShadow <= 1.5 * body) {
+  if (upperShadow > 0.7 * body && lowerShadow < 0.5 * body) {
     if (close > open) return 'inverted_hammer';
     else if (close < open) return 'shooting_star';
   }
@@ -36,8 +36,8 @@ function classifyCandle(c) {
   if (close > open && bodyRatio >= 0.7) return 'big_green';
   if (close < open && bodyRatio >= 0.7) return 'big_red';
 
-  if (close > open && bodyRatio >= 0.5) return 'small_green';
-  if (close < open && bodyRatio >= 0.5) return 'small_red';
+  if (close > open && bodyRatio >= 0.48) return 'small_green';
+  if (close < open && bodyRatio >= 0.48) return 'small_red';
 
   return 'neutral';
 }
@@ -107,7 +107,8 @@ async function sendDiscordEmbed(matches) {
       open: m.curr.open,
       high: m.curr.high,
       low: m.curr.low,
-      close: m.curr.close
+      close: m.curr.close,
+      volume: m.curr.volume
     });
     if (!typeOpenTime[m.type]) typeOpenTime[m.type] = formattedTime;
   }
@@ -142,7 +143,8 @@ async function sendDiscordEmbed(matches) {
           ? `+${changePercent.toFixed(2)}%`
           : `${changePercent.toFixed(2)}%`;
 
-        return `${e.symbol}\nO:${e.open} | H:${e.high} | L:${e.low} | C:${e.close} | Δ:${changeStr} | R:${rangePercent.toFixed(2)}%`;
+        const volumeM = e.volume / 1000000.0;
+        return `**${e.symbol}**\nVolume: ${volumeM.toFixed(2)}M | Change: ${changeStr} | Range: ${rangePercent.toFixed(2)}%`;
       })
       .join('\n');
 
@@ -206,7 +208,8 @@ function startWebSocketConnection(symbolsChunk, index) {
       open: parseFloat(k.o),
       high: parseFloat(k.h),
       low: parseFloat(k.l),
-      close: parseFloat(k.c)
+      close: parseFloat(k.c),
+      volume: parseFloat(k.q)
     };
 
     const type = classifyCandle(candle);
