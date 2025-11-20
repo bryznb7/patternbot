@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #0d1117;
+            color: #c9d1d9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h2 {
+            text-align: center;
+            font-weight: 700;
+            font-size: 2rem;
+            margin-bottom: 20px;
+            color: #58a6ff;
+        }
+
+        .controls {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .controls input,
+        .controls select,
+        .controls button {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: none;
+            outline: none;
+            font-size: 0.95rem;
+            font-weight: 500;
+        }
+
+        .controls input,
+        .controls select {
+            background-color: #161b22;
+            color: #c9d1d9;
+        }
+
+        .controls button {
+            background-color: #238636;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+
+        .controls button:hover {
+            background-color: #2ea043;
+            transform: translateY(-2px);
+        }
+
+        .controls button.export {
+            background-color: #ff7b72;
+        }
+
+        .controls button.export:hover {
+            background-color: #ff4c4b;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            margin-top: 10px;
+        }
+
+        th,
+        td {
+            text-align: center;
+            padding: 12px 8px;
+        }
+
+        th {
+            background: linear-gradient(90deg, #238636, #58a6ff);
+            color: white;
+            font-weight: 600;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        tbody tr {
+            background-color: #161b22;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            display: table-row;
+            /* normal table row for desktop */
+        }
+
+        tbody tr td {
+            display: table-cell;
+            /* normal cell */
+            width: auto;
+            padding: 12px 8px;
+        }
+
+        tbody tr:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(0, 138, 255, 0.3);
+            background-color: #0f141b;
+        }
+
+        .green {
+            color: #3fb950;
+            font-weight: 600;
+        }
+
+        .red {
+            color: #f85149;
+            font-weight: 600;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 15px;
+            gap: 10px;
+        }
+
+        .pagination button {
+            padding: 6px 12px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            background-color: #238636;
+            color: #fff;
+            font-weight: 600;
+            transition: 0.2s;
+        }
+
+        .pagination button:hover {
+            background-color: #2ea043;
+        }
+
+        #status,
+        #pageinfo {
+            font-weight: 500;
+            color: #58a6ff;
+            margin-left: 10px;
+        }
+
+        @media (max-width: 900px) {
+            tbody tr {
+                display: block;
+                /* stacked card view for mobile */
+            }
+
+            tbody tr td {
+                display: block;
+                text-align: left;
+                padding: 8px 12px;
+            }
+
+            tbody tr td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                display: inline-block;
+                width: 100px;
+            }
+
+            table thead {
+                display: none;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <h2>Dashboard</h2>
+    <div class="controls">
+        <input id="symbol" placeholder="Symbol (BTC)">
+        <select id="ctype">
+            <option value="">All Types</option>
+            <option>big_green</option>
+            <option>small_green</option>
+            <option>hammer</option>
+            <option>inverted_hammer</option>
+            <option>shooting_star</option>
+            <option>big_red</option>
+            <option>small_red</option>
+            <option>hanging_man</option>
+        </select>
+        <select id="tf">
+            <option value="">Any TF</option>
+            <option>15m</option>
+            <option>1h</option>
+            <option>1d</option>
+        </select>
+        <input id="minspike" placeholder="Min spike (2.0)">
+        <button onclick="search()">Search</button>
+        <button class="export" onclick="exportCsv()">Export CSV</button>
+    </div>
+
+    <div style="text-align:center; margin-bottom:10px;">
+        Rows per page:
+        <select id="limit" onchange="search()">
+            <option>25</option>
+            <option selected>50</option>
+            <option>100</option>
+        </select>
+        <span id="status"></span>
+    </div>
+
+    <div class="table-wrapper">
+        <table>
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Symbol</th>
+                    <th>Type</th>
+                    <th>Vol (M)</th>
+                    <th>Avg Vol (M)</th>
+                    <th>Spike</th>
+                    <th>Change (%)</th>
+                    <th>Range (%)</th>
+                    <th>EMA Hit</th>
+                </tr>
+            </thead>
+            <tbody id="rows"></tbody>
+        </table>
+    </div>
+
+    <div class="pagination">
+        <button onclick="prevPage()">Prev</button>
+        <span id="pageinfo"></span>
+        <button onclick="nextPage()">Next</button>
+    </div>
+
+    <script>
+        let currentPage = 1;
+        let allData = [];
+
+        async function search() {
+            const symbol = document.getElementById("symbol").value;
+            const type = document.getElementById("ctype").value;
+            const tf = document.getElementById("tf").value;
+            const minspike = document.getElementById("minspike").value;
+            const limit = parseInt(document.getElementById("limit").value);
+            const offset = (currentPage - 1) * limit;
+
+            document.getElementById("status").textContent = "Loading...";
+
+            const params = new URLSearchParams({ symbol, type, tf, minspike });
+            const url = `http://localhost:3000/api/candles?${params.toString()}`;
+
+            try {
+                const res = await fetch(url);
+                allData = await res.json();
+
+                const pageData = allData.slice(offset, offset + limit);
+                const tbody = document.getElementById("rows");
+                tbody.innerHTML = "";
+
+                pageData.forEach(row => {
+                    const changePercent = ((row.close - row.open) / row.open) * 100;
+                    const rangePercent = ((row.high - row.low) / row.open) * 100;
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+            <td data-label="Time">${row.open_time}</td>
+            <td data-label="Symbol">${row.symbol}</td>
+            <td data-label="Type">${row.candle_type}</td>
+            <td data-label="Vol (M)">${row.volume}</td>
+            <td data-label="Avg Vol (M)">${row.avg_volume}</td>
+            <td data-label="Spike">${row.volume_spike.toFixed(2)}</td>
+            <td data-label="Change (%)" class="${changePercent >= 0 ? 'green' : 'red'}">${changePercent.toFixed(2)}</td>
+            <td data-label="Range (%)">${rangePercent.toFixed(2)}</td>
+            <td data-label="EMA Hit">${row.ema_hit}</td>
+          `;
+                    tbody.appendChild(tr);
+                });
+
+                const totalPages = Math.ceil(allData.length / limit);
+                document.getElementById("pageinfo").textContent = `Page ${currentPage} of ${totalPages}`;
+                document.getElementById("status").textContent = `Total rows: ${allData.length}`;
+            } catch (err) {
+                console.error(err);
+                document.getElementById("status").textContent = "Error loading data";
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                search();
+            }
+        }
+
+        function nextPage() {
+            const limit = parseInt(document.getElementById("limit").value);
+            const totalPages = Math.ceil(allData.length / limit);
+            if (currentPage < totalPages) {
+                currentPage++;
+                search();
+            }
+        }
+
+        function exportCsv() {
+            const rows = document.querySelectorAll("#rows tr");
+            let csv = "Time,Symbol,Type,Vol,Avg Vol,Spike,Change,Range,EMA Hit\n";
+            rows.forEach(tr => {
+                const cols = tr.querySelectorAll("td");
+                const row = Array.from(cols).map(td => td.textContent).join(",");
+                csv += row + "\n";
+            });
+
+            const blob = new Blob([csv], { type: "text/csv" });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "candles.csv";
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        search();
+    </script>
+</body>
+
+</html>

@@ -9,15 +9,70 @@ const matches = [];
 let neutralCount = 0;
 
 const VOLUME_WINDOW = 13;
-const volumeHistory = {}; 
+const volumeHistory = {};
 
 const EMA_LEVELS = [12, 21, 30, 50, 100, 200];
-const emaState = {}; 
+const emaState = {};
+
+// ---------------- SQLite Setup ----------------
+const sqlite3 = require('sqlite3').verbose(); // load sqlite3
+const db = new sqlite3.Database('./database/bot_fifteen.db');
+db.run(`
+CREATE TABLE IF NOT EXISTS candles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT,
+    timeframe TEXT,
+    open_time TEXT,
+    open REAL,
+    high REAL,
+    low REAL,
+    close REAL,
+    volume REAL,
+    avg_volume REAL,
+    volume_spike REAL,
+    ema_hit TEXT,
+    candle_type TEXT
+)`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_symbol_timeframe_open ON candles(symbol, timeframe, open_time)`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_timeframe ON candles(timeframe)`);
 
 function log(msg) {
   const taipeiTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' });
   console.log(`[${taipeiTime}] ${msg}`);
 }
+
+// ---------------- Save matches to SQLite ----------------
+function saveMatchesToDB(matches, timeframe = '15m') {
+  const stmt = db.prepare(`
+    INSERT INTO candles
+    (symbol, timeframe, open_time, open, high, low, close, volume, avg_volume, volume_spike, ema_hit, candle_type)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+  const now = Date.now();
+
+  matches.forEach(e => {
+    const volumeM = (e.curr.volume / 1_000_000).toFixed(2);
+    const avgM = (e.avgVolume / 1_000_000).toFixed(2);
+    const datecandle = new Date(e.curr.openTime).toLocaleString('en-US', { timeZone: 'Asia/Taipei' });
+    stmt.run(
+      e.symbol,
+      timeframe,
+      datecandle,
+      e.curr.open,
+      e.curr.high,
+      e.curr.low,
+      e.curr.close,
+      volumeM,
+      avgM,
+      e.volumeSpike.toFixed(2),
+      e.emaHit?.join(',') || '',
+      e.type
+    );
+  });
+
+  stmt.finalize();
+}
+
 
 // ---------------- Candlestick Classification ----------------
 function classifyCandle(c) {
@@ -66,14 +121,14 @@ function calculateEMA(symbol, close) {
 
 // ---------------- Wick Hit Detection ----------------
 function detectWickTouch(candle, symbol) {
-   if (!emaState[symbol]) return [];
+  if (!emaState[symbol]) return [];
 
   const open = candle.open;
   const close = candle.close;
   const high = candle.high;
-  const low  = candle.low;
+  const low = candle.low;
   const bodyHigh = Math.max(open, close);
-  const bodyLow  = Math.min(open, close);
+  const bodyLow = Math.min(open, close);
 
   const hitEMAs = [];
 
@@ -222,6 +277,7 @@ async function sendDiscordEmbed(matches) {
       }
     }
   }
+  saveMatchesToDB(matches, '15m');
 }
 
 // ---------------- Volume Spike ----------------
@@ -334,15 +390,25 @@ function scheduleDiscordSend() {
     - now.getUTCMilliseconds();
 
   setTimeout(async () => {
+    const start = Date.now();  // Start timing
+
     if (matches.length) {
       await sendDiscordEmbed([...matches]);
       matches.length = 0;
+      neutralCount = 0;
     } else {
       log('No matches found.');
     }
+
+    const elapsed = Date.now() - start;  // milliseconds
+    const dynamicDelay = elapsed + 1000; // +1s buffer
+    log(`Processing took ${(elapsed / 1000).toFixed(2)}s. Adding delay: ${(dynamicDelay / 1000).toFixed(2)}s`);
     neutralCount = 0;
-    scheduleDiscordSend();
-  }, msToNext15 + 90000);
+    // Now schedule next run using dynamic delay
+    setTimeout(() => {
+      scheduleDiscordSend();
+    }, dynamicDelay);
+  }, msToNext15 + 120000);
 
   log(`Wait ${Math.round(msToNext15 / (1000 * 60))}-min for the next candle`);
 }
