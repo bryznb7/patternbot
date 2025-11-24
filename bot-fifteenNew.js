@@ -16,22 +16,20 @@ const emaState = {};
 
 // ---------------- SQLite Setup ----------------
 const sqlite3 = require('sqlite3').verbose(); // load sqlite3
-const db = new sqlite3.Database('./database/bot_fifteen.db');
+const db = new sqlite3.Database('bot_database.db');
 db.run(`
 CREATE TABLE IF NOT EXISTS candles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     symbol TEXT,
     timeframe TEXT,
     open_time TEXT,
-    open REAL,
-    high REAL,
-    low REAL,
-    close REAL,
     volume REAL,
     avg_volume REAL,
     volume_spike REAL,
     ema_hit TEXT,
-    candle_type TEXT
+    candle_type TEXT,
+    change REAL,
+    range REAL
 )`);
 db.run(`CREATE INDEX IF NOT EXISTS idx_symbol_timeframe_open ON candles(symbol, timeframe, open_time)`);
 db.run(`CREATE INDEX IF NOT EXISTS idx_timeframe ON candles(timeframe)`);
@@ -45,8 +43,8 @@ function log(msg) {
 function saveMatchesToDB(matches, timeframe = '15m') {
   const stmt = db.prepare(`
     INSERT INTO candles
-    (symbol, timeframe, open_time, open, high, low, close, volume, avg_volume, volume_spike, ema_hit, candle_type)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    (symbol, timeframe, open_time, volume, avg_volume, volume_spike, ema_hit, candle_type, change, range)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
   const now = Date.now();
 
@@ -58,15 +56,13 @@ function saveMatchesToDB(matches, timeframe = '15m') {
       e.symbol,
       timeframe,
       datecandle,
-      e.curr.open,
-      e.curr.high,
-      e.curr.low,
-      e.curr.close,
       volumeM,
       avgM,
       e.volumeSpike.toFixed(2),
       e.emaHit?.join(',') || '',
-      e.type
+      e.type,
+      e.changePercent,
+      e.rangePercent
     );
   });
 
@@ -216,7 +212,9 @@ async function sendDiscordEmbed(matches) {
       volume: m.curr.volume,
       avgVolume: m.avgVolume || 0,
       volumeSpike: m.volumeSpike || 1.0,
-      emaHit: m.emaHit
+      emaHit: m.emaHit,
+      changePercent: m.changePercent,
+      rangePercent: m.rangePercent
     });
     if (!typeOpenTime[m.type]) typeOpenTime[m.type] = formattedTime;
   }
@@ -236,24 +234,20 @@ async function sendDiscordEmbed(matches) {
     if (!grouped[type]) continue;
 
     const sortedSymbols = grouped[type].sort((a, b) => {
-      const deltaA = (a.close - a.open) / a.open;
-      const deltaB = (b.close - b.open) / b.open;
-      return deltaB - deltaA;
+      return b.changePercent - a.changePercent;
     });
 
     const rows = sortedSymbols
       .map(e => {
-        const changePercent = ((e.close - e.open) / e.open) * 100;
-        const rangePercent = ((e.high - e.low) / e.open) * 100;
-        const changeStr = changePercent >= 0
-          ? `+${changePercent.toFixed(2)}%`
-          : `${changePercent.toFixed(2)}%`;
+        const changeStr = e.changePercent >= 0
+          ? `+${e.changePercent}%`
+          : `${e.changePercent}%`;
         const volumeM = e.volume / 1_000_000.0;
         const avgM = e.avgVolume / 1_000_000.0;
         const spikeStr = e.volumeSpike ? `${e.volumeSpike.toFixed(2)}x` : '1.00x';
         const emaInfo = (e.emaHit && e.emaHit.length > 1) ? `EMA Hit: ${e.emaHit.join(', ')}` : '';
 
-        return `**${e.symbol}**\nVol: ${volumeM.toFixed(2)}M (Avg ${avgM.toFixed(2)}M) | Spike: ${spikeStr}\nChange: ${changeStr} | Range: ${rangePercent.toFixed(2)}%${emaInfo ? '\n' + emaInfo : ''}`;
+        return `**${e.symbol}**\nVol: ${volumeM.toFixed(2)}M (Avg ${avgM.toFixed(2)}M) | Spike: ${spikeStr}\nChange: ${changeStr} | Range: ${e.rangePercent}%${emaInfo ? '\n' + emaInfo : ''}`;
       })
       .join('\n');
 
@@ -355,6 +349,8 @@ function startWebSocketConnection(symbolsChunk, index) {
       calculateEMA(symbol, candle.close); // Update EMA
       const type = classifyCandle(candle);
       const emaHit = detectWickTouch(candle, symbol);
+      const changePercent = (((candle.close - candle.open) / candle.open) * 100).toFixed(2);
+      const rangePercent = (((candle.high - candle.low) / candle.open) * 100).toFixed(2);
 
       if (type === 'neutral') {
         neutralCount += 1;
@@ -365,7 +361,9 @@ function startWebSocketConnection(symbolsChunk, index) {
           curr: candle,
           avgVolume,
           volumeSpike,
-          emaHit
+          emaHit,
+          changePercent,
+          rangePercent
         });
       }
     } catch (err) {

@@ -32,7 +32,8 @@
 
         .controls input,
         .controls select,
-        .controls button {
+        .controls button,
+        .rows select {
             padding: 8px 12px;
             border-radius: 8px;
             border: none;
@@ -42,7 +43,8 @@
         }
 
         .controls input,
-        .controls select {
+        .controls select,
+        .rows select {
             background-color: #161b22;
             color: #c9d1d9;
         }
@@ -57,14 +59,6 @@
         .controls button:hover {
             background-color: #2ea043;
             transform: translateY(-2px);
-        }
-
-        .controls button.export {
-            background-color: #ff7b72;
-        }
-
-        .controls button.export:hover {
-            background-color: #ff4c4b;
         }
 
         table {
@@ -180,30 +174,37 @@
 <body>
     <h2>Dashboard</h2>
     <div class="controls">
-        <input id="symbol" placeholder="Symbol (BTC)">
+        <input id="symbol" placeholder="Symbol">
         <select id="ctype">
             <option value="">All Types</option>
-            <option>big_green</option>
-            <option>small_green</option>
-            <option>hammer</option>
-            <option>inverted_hammer</option>
-            <option>shooting_star</option>
-            <option>big_red</option>
-            <option>small_red</option>
-            <option>hanging_man</option>
+            <option value="inverted_hammer">Inverted Hammer</option>
+            <option value="big_green">Big Green</option>
+            <option value="small_green">Small Green</option>
+            <option value="hammer">Hammer</option>
+            <option value="shooting_star">Shooting Star</option>
+            <option value="big_red">Big Red</option>
+            <option value="small_red">Small Red</option>
+            <option value="hanging_man">Hanging Man</option>
         </select>
         <select id="tf">
             <option value="">Any TF</option>
-            <option>15m</option>
-            <option>1h</option>
-            <option>1d</option>
+            <option>15 Minute</option>
+            <option>1 Hour</option>
+            <option>4 Hour</option>
+            <option>Daily</option>
+            <option>Weekly</option>
+            <option>Monthly</option>
         </select>
-        <input id="minspike" placeholder="Min spike (2.0)">
+        <input id="minspike" placeholder="Min spike">
         <button onclick="search()">Search</button>
-        <button class="export" onclick="exportCsv()">Export CSV</button>
+    </div>
+    <div class="controls">
+        <input id="minvolume" placeholder="Min volume">
+        <input id="minchange" placeholder="Min change">
+        <input id="minrange" placeholder="Min range">
     </div>
 
-    <div style="text-align:center; margin-bottom:10px;">
+    <div class="rows" style="text-align:center; margin-bottom:10px;">
         Rows per page:
         <select id="limit" onchange="search()">
             <option>25</option>
@@ -242,48 +243,57 @@
         let currentPage = 1;
         let allData = [];
 
-        async function search() {
+        async function search(isPagination = false) {
+
+            if (!isPagination) currentPage = 1;
+
             const symbol = document.getElementById("symbol").value;
             const type = document.getElementById("ctype").value;
             const tf = document.getElementById("tf").value;
             const minspike = document.getElementById("minspike").value;
+            const minvolume = document.getElementById("minvolume").value;
+            const minchange = document.getElementById("minchange").value;
+            const minrange = document.getElementById("minrange").value;
             const limit = parseInt(document.getElementById("limit").value);
             const offset = (currentPage - 1) * limit;
 
             document.getElementById("status").textContent = "Loading...";
 
-            const params = new URLSearchParams({ symbol, type, tf, minspike });
+            const params = new URLSearchParams({ symbol, type, tf, minspike, minvolume, minchange, minrange });
             const url = `http://localhost:3000/api/candles?${params.toString()}`;
 
             try {
                 const res = await fetch(url);
                 allData = await res.json();
 
+                const totalPages = Math.ceil(allData.length / limit);
+                if (currentPage > totalPages) {
+                    currentPage = 1;
+                }
+
                 const pageData = allData.slice(offset, offset + limit);
                 const tbody = document.getElementById("rows");
                 tbody.innerHTML = "";
 
                 pageData.forEach(row => {
-                    const changePercent = ((row.close - row.open) / row.open) * 100;
-                    const rangePercent = ((row.high - row.low) / row.open) * 100;
                     const tr = document.createElement("tr");
                     tr.innerHTML = `
-            <td data-label="Time">${row.open_time}</td>
-            <td data-label="Symbol">${row.symbol}</td>
-            <td data-label="Type">${row.candle_type}</td>
-            <td data-label="Vol (M)">${row.volume}</td>
-            <td data-label="Avg Vol (M)">${row.avg_volume}</td>
-            <td data-label="Spike">${row.volume_spike.toFixed(2)}</td>
-            <td data-label="Change (%)" class="${changePercent >= 0 ? 'green' : 'red'}">${changePercent.toFixed(2)}</td>
-            <td data-label="Range (%)">${rangePercent.toFixed(2)}</td>
-            <td data-label="EMA Hit">${row.ema_hit}</td>
-          `;
+                <td data-label="Time">${row.open_time}</td>
+                <td data-label="Symbol">${row.symbol}</td>
+                <td data-label="Type">${row.candle_type}</td>
+                <td data-label="Vol (M)">${row.volume}</td>
+                <td data-label="Avg Vol (M)">${row.avg_volume}</td>
+                <td data-label="Spike">${row.volume_spike.toFixed(2)}</td>
+                <td data-label="Change (%)" class="${row.change >= 0 ? 'green' : 'red'}">${row.change}</td>
+                <td data-label="Range (%)">${row.range}</td>
+                <td data-label="EMA Hit">${row.ema_hit}</td>
+            `;
                     tbody.appendChild(tr);
                 });
 
-                const totalPages = Math.ceil(allData.length / limit);
                 document.getElementById("pageinfo").textContent = `Page ${currentPage} of ${totalPages}`;
                 document.getElementById("status").textContent = `Total rows: ${allData.length}`;
+
             } catch (err) {
                 console.error(err);
                 document.getElementById("status").textContent = "Error loading data";
@@ -293,7 +303,7 @@
         function prevPage() {
             if (currentPage > 1) {
                 currentPage--;
-                search();
+                search(true); 
             }
         }
 
@@ -302,29 +312,12 @@
             const totalPages = Math.ceil(allData.length / limit);
             if (currentPage < totalPages) {
                 currentPage++;
-                search();
+                search(true); 
             }
         }
 
-        function exportCsv() {
-            const rows = document.querySelectorAll("#rows tr");
-            let csv = "Time,Symbol,Type,Vol,Avg Vol,Spike,Change,Range,EMA Hit\n";
-            rows.forEach(tr => {
-                const cols = tr.querySelectorAll("td");
-                const row = Array.from(cols).map(td => td.textContent).join(",");
-                csv += row + "\n";
-            });
-
-            const blob = new Blob([csv], { type: "text/csv" });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "candles.csv";
-            a.click();
-            URL.revokeObjectURL(url);
-        }
-
         search();
+
     </script>
 </body>
 
