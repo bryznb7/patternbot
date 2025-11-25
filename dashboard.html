@@ -30,6 +30,17 @@
             margin-bottom: 15px;
         }
 
+        #minspike,
+        #minrange,
+        #minchange,
+        #minvolume {
+            width: 9%;
+        }
+
+        .dateTo {
+            display: none;
+        }
+
         .controls input,
         .controls select,
         .controls button,
@@ -174,7 +185,7 @@
 <body>
     <h2>Dashboard</h2>
     <div class="controls">
-        <input id="symbol" placeholder="Symbol">
+        <input type="text" id="symbol" placeholder="Symbol">
         <select id="ctype">
             <option value="">All Types</option>
             <option value="inverted_hammer">Inverted Hammer</option>
@@ -195,13 +206,77 @@
             <option>Weekly</option>
             <option>Monthly</option>
         </select>
-        <input id="minspike" placeholder="Min spike">
+
         <button onclick="search()">Search</button>
     </div>
     <div class="controls">
-        <input id="minvolume" placeholder="Min volume">
-        <input id="minchange" placeholder="Min change">
-        <input id="minrange" placeholder="Min range">
+        <input type="number" min="0" id="minspike" placeholder="Min spike">
+        <input type="number" min="0" id="minvolume" placeholder="Min volume">
+        <input type="number" min="0" id="minchange" placeholder="Min change">
+        <input type="number" min="0" id="minrange" placeholder="Min range">
+    </div>
+    <div class="controls">
+        <select id="typedate">
+            <option value="exact">Exact</option>
+            <option value="range">Range</option>
+        </select>
+        <div class="dateFrom">
+            <input id="datePickerF" type="date">
+            <select id="hourPickerF">
+                <option value="01">01</option>
+                <option value="02">02</option>
+                <option value="03">03</option>
+                <option value="04">04</option>
+                <option value="05">05</option>
+                <option value="06">06</option>
+                <option value="07">07</option>
+                <option value="08">08</option>
+                <option value="09">09</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+            </select>
+            <select id="minutePickerF">
+                <option value="00">00</option>
+                <option value="15">15</option>
+                <option value="30">30</option>
+                <option value="45">45</option>
+            </select>
+            <select id="AMPMPickerF">
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+            </select>
+            <input type="hidden" id="exactTimeF">
+        </div>
+        <div class="dateTo">
+            <label>-&nbsp;</label>
+            <input id="datePickerT" type="date">
+            <select id="hourPickerT">
+                <option value="01">01</option>
+                <option value="02">02</option>
+                <option value="03">03</option>
+                <option value="04">04</option>
+                <option value="05">05</option>
+                <option value="06">06</option>
+                <option value="07">07</option>
+                <option value="08">08</option>
+                <option value="09">09</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+            </select>
+            <select id="minutePickerT">
+                <option value="00">00</option>
+                <option value="15">15</option>
+                <option value="30">30</option>
+                <option value="45">45</option>
+            </select>
+            <select id="AMPMPickerT">
+                <option value="AM">AM</option>
+                <option value="PM">PM</option>
+            </select>
+            <input type="hidden" id="exactTimeT">
+        </div>
     </div>
 
     <div class="rows" style="text-align:center; margin-bottom:10px;">
@@ -255,11 +330,14 @@
             const minchange = document.getElementById("minchange").value;
             const minrange = document.getElementById("minrange").value;
             const limit = parseInt(document.getElementById("limit").value);
+            const exactTimeF = document.getElementById("exactTimeF").value;
+            const exactTimeT = document.getElementById("exactTimeT").value;
             const offset = (currentPage - 1) * limit;
+            const typedate = document.getElementById("typedate").value;
 
             document.getElementById("status").textContent = "Loading...";
 
-            const params = new URLSearchParams({ symbol, type, tf, minspike, minvolume, minchange, minrange });
+            const params = new URLSearchParams({ symbol, type, tf, minspike, minvolume, minchange, minrange, typedate, exactTimeF, exactTimeT });
             const url = `http://localhost:3000/api/candles?${params.toString()}`;
 
             try {
@@ -303,7 +381,7 @@
         function prevPage() {
             if (currentPage > 1) {
                 currentPage--;
-                search(true); 
+                search(true);
             }
         }
 
@@ -312,12 +390,75 @@
             const totalPages = Math.ceil(allData.length / limit);
             if (currentPage < totalPages) {
                 currentPage++;
-                search(true); 
+                search(true);
             }
         }
 
         search();
 
+        function getExactTime() {
+            const date = document.getElementById("datePickerF").value; // "YYYY-MM-DD"
+            let hour = parseInt(document.getElementById("hourPickerF").value, 10);
+            const minute = document.getElementById("minutePickerF").value;
+            const ampm = document.getElementById("AMPMPickerF").value;
+
+            if (!date || !hour || !minute || !ampm) return null;
+
+            // Convert 12-hour to 24-hour for Date object
+            let hour24 = hour;
+            if (ampm === "PM" && hour < 12) hour24 += 12;
+            if (ampm === "AM" && hour === 12) hour24 = 0;
+
+            // Create a Date object
+            const [year, month, day] = date.split('-'); // YYYY-MM-DD
+            const dt = new Date(year, month - 1, day, hour24, parseInt(minute, 10), 0);
+
+            // Format to "MM/DD/YYYY, H:MM:SS AM/PM"
+            let displayHour = dt.getHours() % 12 || 12;
+            const displayMinute = dt.getMinutes().toString().padStart(2, '0');
+            const displaySecond = dt.getSeconds().toString().padStart(2, '0');
+            const displayAmPm = dt.getHours() >= 12 ? 'PM' : 'AM';
+            const formatted = `${(dt.getMonth() + 1).toString().padStart(2, '0')}/${dt.getDate().toString().padStart(2, '0')}/${dt.getFullYear()}, ${displayHour}:${displayMinute}:${displaySecond} ${displayAmPm}`;
+
+            return formatted;
+        }
+
+        function updateExactTimeF() {
+            const exactTimeInput = document.getElementById("exactTimeF");
+            const timestamp = getExactTime();
+            exactTimeInput.value = timestamp ? timestamp : "";
+        }
+
+        document.getElementById("datePickerF").addEventListener("change", updateExactTimeF);
+        document.getElementById("hourPickerF").addEventListener("change", updateExactTimeF);
+        document.getElementById("minutePickerF").addEventListener("change", updateExactTimeF);
+        document.getElementById("AMPMPickerF").addEventListener("change", updateExactTimeF);
+
+        function updateExactTimeT() {
+            const exactTimeInput = document.getElementById("exactTimeT");
+            const timestamp = getExactTime();
+            exactTimeInput.value = timestamp ? timestamp : "";
+        }
+
+        document.getElementById("datePickerT").addEventListener("change", updateExactTimeT);
+        document.getElementById("hourPickerT").addEventListener("change", updateExactTimeT);
+        document.getElementById("minutePickerT").addEventListener("change", updateExactTimeT);
+        document.getElementById("AMPMPickerT").addEventListener("change", updateExactTimeT);
+
+        const typeDateSelect = document.getElementById("typedate");
+        const dateToDiv = document.querySelector(".dateTo");
+
+        function updateDateToVisibility() {
+            if (typeDateSelect.value === "exact") {
+                dateToDiv.style.display = "none"; 
+            } else {
+                dateToDiv.style.display = "block"; 
+            }
+        }
+
+        typeDateSelect.addEventListener("change", updateDateToVisibility);
+
+        updateDateToVisibility();
     </script>
 </body>
 

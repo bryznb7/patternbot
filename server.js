@@ -8,7 +8,7 @@ app.use(cors()); // allow frontend to access backend
 
 const DB_PATH = "bot_database.db"; // one level up
 
-function queryCandles({ symbol, type, tf, minspike, minvolume, minchange, minrange }) {
+function queryCandles({ symbol, type, tf, minspike, minvolume, minchange, minrange, typedate, exactTimeF, exactTimeT }) {
     return new Promise((resolve, reject) => {
         const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READONLY);
 
@@ -44,7 +44,13 @@ function queryCandles({ symbol, type, tf, minspike, minvolume, minchange, minran
             sql += " AND range >= ?";
             params.push(parseFloat(minrange));
         }
-
+        if (typedate == "exact" && exactTimeF) {
+            sql += " AND open_time = ?";
+            params.push(exactTimeF);
+        } else if (exactTimeF && exactTimeT) {
+            sql += " AND open_time >= ? AND open_time <= ?";
+            params.push(exactTimeF, exactTimeT);
+        }
 
         sql += " ORDER BY open_time DESC"; // limit for performance
 
