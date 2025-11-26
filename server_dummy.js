@@ -2,11 +2,11 @@ const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const cors = require("cors");
 const app = express();
-const PORT = 3001;
+const PORT = 3000;
 
 app.use(cors()); // allow frontend to access backend
 
-const DB_PATH = "bot_database.db"; // one level up
+const DB_PATH = "bot_dummy.db"; // one level up
 
 function queryCandles({ symbol, type, tf, minspike, minvolume, minchange, minrange, typedate, exactTimeF, exactTimeT, emaHit }) {
     return new Promise((resolve, reject) => {

@@ -59,7 +59,7 @@ function saveMatchesToDB(matches, timeframe = '15m') {
       volumeM,
       avgM,
       e.volumeSpike.toFixed(2),
-      e.emaHit?.join(',') || '',
+      e.emaHit?.join(',') || '-',
       e.type,
       e.changePercent,
       e.rangePercent
