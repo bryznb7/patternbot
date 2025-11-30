@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pattern Scanner - Candlestick Screener</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <!-- Basic dark theme + Binance-style accent -->
+  <style>
+    :root {
+      --bg-body: #020617;
+      --bg-card: #0b1120;
+      --bg-soft: #020617;
+      --border-subtle: #1f2937;
+      --accent: #f3ba2f; /* Binance-style yellow */
+      --accent-soft: rgba(243, 186, 47, 0.14);
+      --text-main: #e5e7eb;
+      --text-muted: #9ca3af;
+      --danger: #ef4444;
+      --success: #22c55e;
+      --radius-lg: 18px;
+      --radius-md: 12px;
+      --radius-pill: 999px;
+      --shadow-soft: 0 18px 45px rgba(15, 23, 42, 0.65);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+        sans-serif;
+      background-color: var(--bg-body);
+      color: var(--text-main);
+    }
+
+    body {
+      display: flex;
+      flex-direction: column;
+    }
+
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
+
+    img {
+      max-width: 100%;
+      display: block;
+    }
+
+    /* Layout wrapper */
+    .page {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .page-inner {
+      width: 100%;
+      max-width: 1120px;
+      margin: 0 auto;
+      padding: 16px 16px 32px;
+    }
+
+    /* Top navbar */
+    .navbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 16px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      backdrop-filter: blur(18px);
+      position: sticky;
+      top: 12px;
+      z-index: 20;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.7);
+    }
+
+    .nav-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .app-logo {
+      height: 32px;
+      width: auto;
+      border-radius: 9px;
+      background: radial-gradient(circle at 10% 10%, rgba(243, 186, 47, 0.18), transparent 55%);
+      padding: 3px;
+    }
+
+    .brand-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .brand-title {
+      font-size: 15px;
+      font-weight: 600;
+      letter-spacing: 0.03em;
+    }
+
+    .brand-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .nav-links {
+      display: none;
+      align-items: center;
+      gap: 18px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .nav-links a {
+      padding: 4px 2px;
+      border-radius: 999px;
+      transition: color 0.16s ease, background 0.16s ease;
+    }
+
+    .nav-links a:hover {
+      color: #f9fafb;
+      background: rgba(31, 41, 55, 0.7);
+    }
+
+    .nav-cta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-ghost {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      padding: 6px 10px;
+      border-radius: var(--radius-pill);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      background: rgba(15, 23, 42, 0.85);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
+    }
+
+    .btn-ghost:hover {
+      border-color: rgba(148, 163, 184, 0.9);
+      color: #f9fafb;
+      background: rgba(15, 23, 42, 1);
+    }
+
+    .btn-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px 16px;
+      border-radius: var(--radius-pill);
+      border: none;
+      background: radial-gradient(circle at 0 0, #facc15, #f3ba2f);
+      color: #020617;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      box-shadow: 0 12px 40px rgba(234, 179, 8, 0.45);
+      transition: transform 0.12s ease, box-shadow 0.12s ease, filter 0.12s ease;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 16px 55px rgba(234, 179, 8, 0.6);
+    }
+
+    /* Hero section */
+    .hero {
+      margin-top: 24px;
+      display: grid;
+      grid-template-columns: minmax(0, 1.1fr);
+      gap: 20px;
+      align-items: center;
+    }
+
+    .hero-left {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .hero-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 11px;
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      width: fit-content;
+    }
+
+    .hero-kicker-pill {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: radial-gradient(circle, #22c55e, #15803d);
+      box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25);
+    }
+
+    .hero-title {
+      font-size: clamp(24px, 4vw, 32px);
+      line-height: 1.15;
+      letter-spacing: 0.01em;
+    }
+
+    .hero-title span {
+      color: #facc15;
+    }
+
+    .hero-subtitle {
+      font-size: 13px;
+      color: var(--text-muted);
+      max-width: 32rem;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 2px;
+      align-items: center;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 4px;
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .hero-meta span {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot-green {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #22c55e;
+      box-shadow: 0 0 0 4px rgba(22, 163, 74, 0.32);
+    }
+
+    .dot-yellow {
+      width: 7px;
+      height: 7px;
+      border-radius: 999px;
+      background: #facc15;
+      box-shadow: 0 0 0 4px rgba(250, 204, 21, 0.32);
+    }
+
+    .hero-right {
+      display: flex;
+      justify-content: center;
+    }
+
+    .hero-card {
+      width: 100%;
+      max-width: 360px;
+      border-radius: 22px;
+      background: radial-gradient(circle at 0 0, rgba(243, 186, 47, 0.12), transparent 52%),
+                  radial-gradient(circle at 100% 100%, rgba(34, 197, 94, 0.14), transparent 55%),
+                  #020617;
+      border: 1px solid rgba(55, 65, 81, 0.85);
+      box-shadow: var(--shadow-soft);
+      padding: 16px 14px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hero-card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .hero-card-title {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+    }
+
+    .hero-card-badge {
+      font-size: 10px;
+      padding: 3px 8px;
+      border-radius: 999px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      color: var(--text-muted);
+    }
+
+    .mini-table-wrapper {
+      border-radius: 16px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid rgba(31, 41, 55, 0.9);
+      overflow: hidden;
+      font-size: 11px;
+    }
+
+    .mini-table-header,
+    .mini-table-row {
+      display: grid;
+      grid-template-columns: 1.4fr 0.9fr 0.9fr;
+      padding: 6px 10px;
+      align-items: center;
+    }
+
+    .mini-table-header {
+      background: rgba(15, 23, 42, 0.98);
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      border-bottom: 1px solid rgba(31, 41, 55, 1);
+    }
+
+    .mini-table-row:nth-child(odd) {
+      background: rgba(15, 23, 42, 0.98);
+    }
+
+    .mini-table-row:nth-child(even) {
+      background: rgba(15, 23, 42, 0.9);
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 10px;
+      font-weight: 500;
+    }
+
+    .badge-green {
+      background: rgba(22, 163, 74, 0.15);
+      color: #22c55e;
+    }
+
+    .badge-red {
+      background: rgba(239, 68, 68, 0.16);
+      color: #f97373;
+    }
+
+    .badge-neutral {
+      background: rgba(148, 163, 184, 0.16);
+      color: #e5e7eb;
+    }
+
+    .hero-card-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 4px;
+    }
+
+    /* Features section */
+    .section {
+      margin-top: 32px;
+    }
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+
+    .section-title {
+      font-size: 16px;
+      font-weight: 600;
+    }
+
+    .section-sub {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr);
+      gap: 12px;
+    }
+
+    .feature-card {
+      border-radius: var(--radius-md);
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 12px 12px 11px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .feature-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 999px;
+      background: radial-gradient(circle at 30% 0, #facc15, #f97316);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 11px;
+      color: #020617;
+      margin-bottom: 2px;
+    }
+
+    .feature-title {
+      font-size: 13px;
+      font-weight: 500;
+    }
+
+    .feature-text {
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    /* Dashboard section */
+    .dashboard-card {
+      border-radius: 20px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      padding: 12px;
+      box-shadow: 0 20px 40px rgba(15, 23, 42, 0.75);
+      margin-top: 6px;
+    }
+
+    .dashboard-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+
+    .dashboard-title-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
+    .dashboard-title {
+      font-size: 14px;
+      font-weight: 600;
+    }
+
+    .dashboard-sub {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .dashboard-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      font-size: 11px;
+    }
+
+    .pill {
+      border-radius: 999px;
+      padding: 3px 8px;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      background: rgba(15, 23, 42, 0.85);
+      color: var(--text-muted);
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .pill-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(148, 163, 184, 0.9);
+    }
+
+    .pill-dot-green {
+      background: #22c55e;
+    }
+
+    .pill-dot-red {
+      background: #ef4444;
+    }
+
+    .table-wrapper {
+      margin-top: 8px;
+      border-radius: 14px;
+      border: 1px solid rgba(31, 41, 55, 1);
+      overflow: hidden;
+      background: rgba(15, 23, 42, 0.95);
+    }
+
+    .table-scroll {
+      max-height: 320px;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 640px;
+      font-size: 11px;
+    }
+
+    thead {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      background: rgba(15, 23, 42, 1);
+    }
+
+    th,
+    td {
+      padding: 6px 9px;
+      text-align: left;
+      border-bottom: 1px solid rgba(31, 41, 55, 1);
+      white-space: nowrap;
+    }
+
+    th {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 1);
+    }
+
+    tbody tr:nth-child(even) {
+      background: rgba(15, 23, 42, 0.96);
+    }
+
+    tbody tr:nth-child(odd) {
+      background: rgba(15, 23, 42, 0.92);
+    }
+
+    td.num {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+
+    td.center {
+      text-align: center;
+    }
+
+    .table-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 9px;
+      font-size: 11px;
+      color: var(--text-muted);
+      background: rgba(15, 23, 42, 0.98);
+    }
+
+    .pager {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .pager button {
+      border-radius: 999px;
+      border: 1px solid rgba(55, 65, 81, 0.9);
+      background: rgba(15, 23, 42, 0.85);
+      color: var(--text-muted);
+      padding: 3px 8px;
+      font-size: 11px;
+      cursor: pointer;
+    }
+
+    .pager button:hover {
+      border-color: rgba(148, 163, 184, 0.9);
+      color: #f9fafb;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 26px;
+      padding: 10px 4px 0;
+      font-size: 11px;
+      color: var(--text-muted);
+      border-top: 1px solid rgba(31, 41, 55, 0.9);
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 12px;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+    }
+
+    /* Responsive tweaks */
+    @media (min-width: 720px) {
+      .page-inner {
+        padding: 20px 20px 40px;
+      }
+
+      .nav-links {
+        display: flex;
+      }
+
+      .hero {
+        grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.9fr);
+      }
+
+      .feature-grid {
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+      }
+    }
+
+    @media (min-width: 960px) {
+      .page-inner {
+        padding-inline: 24px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <div class="page-inner">
+      <!-- NAVBAR -->
+      <header class="navbar">
+        <div class="nav-left">
+          <img src="logo.png" alt="Pattern Scanner logo" class="app-logo" />
+          <div class="brand-text">
+            <div class="brand-title">Pattern Scanner</div>
+            <div class="brand-subtitle">Binance perpetual candlestick screener</div>
+          </div>
+        </div>
+        <nav class="nav-links">
+          <a href="#features">Features</a>
+          <a href="#dashboard">Dashboard</a>
+          <a href="#docs">Docs</a>
+          <a href="#contact">Contact</a>
+        </nav>
+        <div class="nav-cta">
+          <button class="btn-ghost" type="button">
+            <span class="pill-dot pill-dot-green"></span>
+            Live market
+          </button>
+          <button class="btn-primary" type="button" onclick="document.getElementById('dashboard').scrollIntoView({behavior:'smooth'})">
+            Open dashboard
+          </button>
+        </div>
+      </header>
+
+      <!-- HERO -->
+      <section class="hero" id="top">
+        <div class="hero-left">
+          <div class="hero-kicker">
+            <span class="hero-kicker-pill"></span>
+            Realtime patterns on Binance perpetuals
+          </div>
+          <h1 class="hero-title">
+            Catch every <span>candlestick signal</span> before it disappears.
+          </h1>
+          <p class="hero-subtitle">
+            Your logo-powered bot continuously scans Binance perpetual markets for hammers,
+            inverted hammers, big green moves, and more — all in a fast, focused dashboard.
+          </p>
+          <div class="hero-actions">
+            <button class="btn-primary" type="button" onclick="document.getElementById('dashboard').scrollIntoView({behavior:'smooth'})">
+              Launch Pattern Scanner
+            </button>
+            <button class="btn-ghost" type="button">
+              View docs
+            </button>
+          </div>
+          <div class="hero-meta">
+            <span><span class="dot-green"></span> Live screening</span>
+            <span><span class="dot-yellow"></span> Optimized for desktop &amp; mobile</span>
+          </div>
+        </div>
+
+        <div class="hero-right">
+          <div class="hero-card">
+            <div class="hero-card-header">
+              <div class="hero-card-title">Recent patterns</div>
+              <div class="hero-card-badge">Sample data</div>
+            </div>
+            <div class="mini-table-wrapper">
+              <div class="mini-table-header">
+                <div>Pair</div>
+                <div>Timeframe</div>
+                <div>Pattern</div>
+              </div>
+              <div class="mini-table-row">
+                <div>BTCUSDT</div>
+                <div>15m</div>
+                <div class="center">
+                  <span class="badge badge-green">hammer</span>
+                </div>
+              </div>
+              <div class="mini-table-row">
+                <div>ETHUSDT</div>
+                <div>1h</div>
+                <div class="center">
+                  <span class="badge badge-red">shooting_star</span>
+                </div>
+              </div>
+              <div class="mini-table-row">
+                <div>BNBUSDT</div>
+                <div>4h</div>
+                <div class="center">
+                  <span class="badge badge-green">big_green</span>
+                </div>
+              </div>
+              <div class="mini-table-row">
+                <div>SOLUSDT</div>
+                <div>30m</div>
+                <div class="center">
+                  <span class="badge badge-neutral">doji</span>
+                </div>
+              </div>
+            </div>
+            <div class="hero-card-footer">
+              <span>Streaming from Binance perpetual markets</span>
+              <span>Updated seconds ago</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FEATURES -->
+      <section class="section" id="features">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Built for pattern traders</div>
+            <div class="section-sub">
+              Filter signals, scan markets, and act quickly with a layout tuned for candlestick setups.
+            </div>
+          </div>
+        </div>
+        <div class="feature-grid">
+          <article class="feature-card">
+            <div class="feature-icon">⚡</div>
+            <div class="feature-title">Realtime screening</div>
+            <div class="feature-text">
+              Continuously scans Binance perpetual pairs and surfaces fresh pattern signals.
+            </div>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">🎯</div>
+            <div class="feature-title">Smart filters</div>
+            <div class="feature-text">
+              Filter by timeframe, pattern family, and volume so you only see trades that matter.
+            </div>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">📊</div>
+            <div class="feature-title">Clear table view</div>
+            <div class="feature-text">
+              Sticky headers, scrollable body, and color-coded pattern badges for instant reading.
+            </div>
+          </article>
+          <article class="feature-card">
+            <div class="feature-icon">📱</div>
+            <div class="feature-title">Desktop & mobile</div>
+            <div class="feature-text">
+              One layout that adapts cleanly from trading monitors to mobile screens.
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <!-- DASHBOARD PREVIEW / MAIN APP -->
+      <section class="section" id="dashboard">
+        <div class="section-header">
+          <div>
+            <div class="section-title">Pattern Scanner Dashboard</div>
+            <div class="section-sub">
+              Plug your existing logic here – this is the live table that your bot controls.
+            </div>
+          </div>
+        </div>
+
+        <div class="dashboard-card">
+          <div class="dashboard-header">
+            <div class="dashboard-title-wrap">
+              <div class="dashboard-title">Signals table</div>
+              <div class="dashboard-sub">Sample static data – wire your JS to replace these rows.</div>
+            </div>
+            <div class="dashboard-controls">
+              <div class="pill">
+                <span class="pill-dot pill-dot-green"></span>
+                Bullish: hammer, inverted hammer, big_green
+              </div>
+              <div class="pill">
+                <span class="pill-dot pill-dot-red"></span>
+                Bearish: others
+              </div>
+            </div>
+          </div>
+
+          <div class="table-wrapper">
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Pair</th>
+                    <th>TF</th>
+                    <th>Type</th>
+                    <th>Open</th>
+                    <th>Close</th>
+                    <th>Change %</th>
+                    <th>Volume</th>
+                    <th>Time</th>
+                  </tr>
+                </thead>
+                <tbody id="signals-body">
+                  <!-- Replace these rows with your own JS-generated rows -->
+                  <tr>
+                    <td>BTCUSDT</td>
+                    <td>15m</td>
+                    <td class="center">
+                      <span class="badge badge-green">hammer</span>
+                    </td>
+                    <td class="num">67,850.2</td>
+                    <td class="num">68,430.8</td>
+                    <td class="num">+0.86%</td>
+                    <td class="num">1,204.3M</td>
+                    <td>2025-11-28 13:58</td>
+                  </tr>
+                  <tr>
+                    <td>ETHUSDT</td>
+                    <td>1h</td>
+                    <td class="center">
+                      <span class="badge badge-red">shooting_star</span>
+                    </td>
+                    <td class="num">3,240.1</td>
+                    <td class="num">3,189.7</td>
+                    <td class="num">-1.55%</td>
+                    <td class="num">482.9M</td>
+                    <td>2025-11-28 13:45</td>
+                  </tr>
+                  <tr>
+                    <td>BNBUSDT</td>
+                    <td>4h</td>
+                    <td class="center">
+                      <span class="badge badge-green">big_green</span>
+                    </td>
+                    <td class="num">598.4</td>
+                    <td class="num">624.9</td>
+                    <td class="num">+4.43%</td>
+                    <td class="num">231.7M</td>
+                    <td>2025-11-28 12:00</td>
+                  </tr>
+                  <tr>
+                    <td>SOLUSDT</td>
+                    <td>30m</td>
+                    <td class="center">
+                      <span class="badge badge-neutral">doji</span>
+                    </td>
+                    <td class="num">134.1</td>
+                    <td class="num">134.0</td>
+                    <td class="num">-0.07%</td>
+                    <td class="num">89.3M</td>
+                    <td>2025-11-28 13:30</td>
+                  </tr>
+                  <tr>
+                    <td>LINKUSDT</td>
+                    <td>1h</td>
+                    <td class="center">
+                      <span class="badge badge-green">inverted_hammer</span>
+                    </td>
+                    <td class="num">18.42</td>
+                    <td class="num">18.97</td>
+                    <td class="num">+2.98%</td>
+                    <td class="num">43.6M</td>
+                    <td>2025-11-28 13:10</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <div class="table-footer">
+              <div>Showing 1–5 of 128 signals</div>
+              <div class="pager">
+                <button type="button">Prev</button>
+                <span>1 / 26</span>
+                <button type="button">Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FOOTER -->
+      <footer class="footer" id="contact">
+        <div>© 2025 Pattern Scanner. Binance perpetual candlestick screener UI.</div>
+        <div class="footer-links">
+          <a href="#docs">Docs</a>
+          <a href="#top">Back to top</a>
+        </div>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Optional: here you can plug your existing JS to replace table rows -->
+  <script>
+    // Example: hook for later integration
+    // function renderSignals(data) {
+    //   const tbody = document.getElementById('signals-body');
+    //   tbody.innerHTML = '';
+    //   data.forEach((row) => {
+    //     const badgeClass =
+    //       row.type === 'hammer' ||
+    //       row.type === 'inverted_hammer' ||
+    //       row.type === 'big_green'
+    //         ? 'badge badge-green'
+    //         : 'badge badge-red';
+    //     const tr = document.createElement('tr');
+    //     tr.innerHTML = `
+    //       <td>${row.symbol}</td>
+    //       <td>${row.timeframe}</td>
+    //       <td class="center"><span class="${badgeClass}">${row.type}</span></td>
+    //       <td class="num">${row.open}</td>
+    //       <td class="num">${row.close}</td>
+    //       <td class="num">${row.change}</td>
+    //       <td class="num">${row.volume}</td>
+    //       <td>${row.time}</td>
+    //     `;
+    //     tbody.appendChild(tr);
+    //   });
+    // }
+  </script>
+</body>
+</html>

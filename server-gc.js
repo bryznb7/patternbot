@@ -1,16 +1,21 @@
 const express = require("express");
 const sqlite3 = require("sqlite3").verbose();
 const cors = require("cors");
+const path = require("path");
 const app = express();
 const PORT = 3000;
 
-app.use(cors()); // allow frontend to access backend
+// ======== Configuration ========
+const DB_PATH = path.join(__dirname, "bot_database.db"); 
+const PUBLIC_FOLDER = path.join(__dirname, "public"); 
 
-const DB_PATH = "bot_database.db"; // one level up
+// ======== Middleware ========
+app.use(cors()); // allow frontend to access backend
+app.use(express.static(PUBLIC_FOLDER)); // serve static HTML/JS/CSS
 
 function queryCandles({ symbol, type, tf, minspike, minvolume, minchange, minrange, typedate, exactTimeF, exactTimeT, emaHit }) {
     return new Promise((resolve, reject) => {
-        const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READONLY);
+        const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE);
 
         let sql = `SELECT open_time, symbol, candle_type, volume, avg_volume, volume_spike, ema_hit, timeframe, change, range
                    FROM candles WHERE 1=1`;
@@ -75,6 +80,7 @@ app.get("/api/candles", async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running at http://localhost:${PORT}`);
+app.listen(PORT, "0.0.0.0", () => {
+    console.log(`Server running at http://0.0.0.0:${PORT}`);
 });
+

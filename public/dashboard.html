@@ -396,7 +396,7 @@
             document.getElementById("status").textContent = "Loading...";
 
             const params = new URLSearchParams({ symbol, type, tf, minspike, minvolume, minchange, minrange, typedate, exactTimeF, exactTimeT, emaHit });
-            const url = `http://localhost:3001/api/candles?${params.toString()}`;
+            const url = `http://34.80.104.70:3000/api/candles?${params.toString()}`;
 
             try {
                 const res = await fetch(url);

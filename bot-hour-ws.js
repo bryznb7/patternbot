@@ -14,10 +14,74 @@ const volumeHistory = {};
 const EMA_LEVELS = [12, 21, 30, 50, 100, 200];
 const emaState = {};
 
+// ---------------- SQLite Setup ----------------
+const sqlite3 = require('sqlite3').verbose(); // load sqlite3
+const db = new sqlite3.Database('bot_database.db');
+db.run(`
+CREATE TABLE IF NOT EXISTS candles (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    symbol TEXT,
+    timeframe TEXT,
+    open_time DATETIME,
+    volume REAL,
+    avg_volume REAL,
+    volume_spike REAL,
+    ema_hit TEXT,
+    candle_type TEXT,
+    change REAL,
+    range REAL
+)`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_symbol_timeframe_open ON candles(symbol, timeframe, open_time)`);
+db.run(`CREATE INDEX IF NOT EXISTS idx_timeframe ON candles(timeframe)`);
+
 function log(msg) {
   const taipeiTime = new Date().toLocaleString('en-US', { timeZone: 'Asia/Taipei' });
   console.log(`[${taipeiTime}] ${msg}`);
 }
+
+function formatToSQLDate(dateInput) {
+    const dt = new Date(dateInput);
+
+    const year = dt.getFullYear();
+    const month = String(dt.getMonth() + 1).padStart(2, '0');
+    const day = String(dt.getDate()).padStart(2, '0');
+    const hour = String(dt.getHours()).padStart(2, '0');
+    const minute = String(dt.getMinutes()).padStart(2, '0');
+    const second = String(dt.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+}
+
+
+// ---------------- Save matches to SQLite ----------------
+function saveMatchesToDB(matches, timeframe = '1h') {
+  const stmt = db.prepare(`
+    INSERT INTO candles
+    (symbol, timeframe, open_time, volume, avg_volume, volume_spike, ema_hit, candle_type, change, range)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `);
+
+  matches.forEach(e => {
+    const volumeM = (e.curr.volume / 1_000_000).toFixed(2);
+    const avgM = (e.avgVolume / 1_000_000).toFixed(2);
+    const datecandle = formatToSQLDate(e.curr.openTime);
+    stmt.run(
+      e.symbol,
+      timeframe,
+      datecandle,
+      volumeM,
+      avgM,
+      e.volumeSpike.toFixed(2),
+      e.emaHit?.join(',') || '-',
+      e.type,
+      e.changePercent,
+      e.rangePercent
+    );
+  });
+
+  stmt.finalize();
+}
+
 
 // ---------------- Candlestick Classification ----------------
 function classifyCandle(c) {
@@ -150,7 +214,7 @@ async function sendDiscordEmbed(matches) {
   const grouped = {};
   const typeOpenTime = {};
   for (const m of matches) {
-    const formattedTime = new Date(m.curr.openTime).toLocaleString('en-US', {timeZone: 'Asia/Taipei'});
+    const formattedTime = new Date(m.curr.openTime).toLocaleString('en-US', { timeZone: 'Asia/Taipei' });
     if (!grouped[m.type]) grouped[m.type] = [];
     grouped[m.type].push({
       symbol: m.symbol.toUpperCase(),
@@ -161,7 +225,9 @@ async function sendDiscordEmbed(matches) {
       volume: m.curr.volume,
       avgVolume: m.avgVolume || 0,
       volumeSpike: m.volumeSpike || 1.0,
-      emaHit: m.emaHit
+      emaHit: m.emaHit,
+      changePercent: m.changePercent,
+      rangePercent: m.rangePercent
     });
     if (!typeOpenTime[m.type]) typeOpenTime[m.type] = formattedTime;
   }
@@ -181,24 +247,20 @@ async function sendDiscordEmbed(matches) {
     if (!grouped[type]) continue;
 
     const sortedSymbols = grouped[type].sort((a, b) => {
-      const deltaA = (a.close - a.open) / a.open;
-      const deltaB = (b.close - b.open) / b.open;
-      return deltaB - deltaA; // descending order (largest positive first)
+      return b.changePercent - a.changePercent;
     });
 
     const rows = sortedSymbols
       .map(e => {
-        const changePercent = ((e.close - e.open) / e.open) * 100;
-        const rangePercent = ((e.high - e.low) / e.open) * 100;
-        const changeStr = changePercent >= 0
-          ? `+${changePercent.toFixed(2)}%`
-          : `${changePercent.toFixed(2)}%`;
+        const changeStr = e.changePercent >= 0
+          ? `+${e.changePercent}%`
+          : `${e.changePercent}%`;
         const volumeM = e.volume / 1_000_000.0;
         const avgM = e.avgVolume / 1_000_000.0;
         const spikeStr = e.volumeSpike ? `${e.volumeSpike.toFixed(2)}x` : '1.00x';
         const emaInfo = (e.emaHit && e.emaHit.length > 1) ? `EMA Hit: ${e.emaHit.join(', ')}` : '';
 
-        return `**${e.symbol}**\nVol: ${volumeM.toFixed(2)}M (Avg ${avgM.toFixed(2)}M) | Spike: ${spikeStr}\nChange: ${changeStr} | Range: ${rangePercent.toFixed(2)}%${emaInfo ? '\n' + emaInfo : ''}`;
+        return `**${e.symbol}**\nVol: ${volumeM.toFixed(2)}M (Avg ${avgM.toFixed(2)}M) | Spike: ${spikeStr}\nChange: ${changeStr} | Range: ${e.rangePercent}%${emaInfo ? '\n' + emaInfo : ''}`;
       })
       .join('\n');
 
@@ -222,6 +284,7 @@ async function sendDiscordEmbed(matches) {
       }
     }
   }
+  saveMatchesToDB(matches, '1h');
 }
 
 // ---------------- Volume Spike ----------------
@@ -299,6 +362,8 @@ function startWebSocketConnection(symbolsChunk, index) {
       calculateEMA(symbol, candle.close); // Update EMA
       const type = classifyCandle(candle);
       const emaHit = detectWickTouch(candle, symbol);
+      const changePercent = (((candle.close - candle.open) / candle.open) * 100).toFixed(2);
+      const rangePercent = (((candle.high - candle.low) / candle.open) * 100).toFixed(2);
 
       if (type === 'neutral') {
         neutralCount += 1;
@@ -309,7 +374,9 @@ function startWebSocketConnection(symbolsChunk, index) {
           curr: candle,
           avgVolume,
           volumeSpike,
-          emaHit
+          emaHit,
+          changePercent,
+          rangePercent
         });
       }
     } catch (err) {
@@ -342,7 +409,7 @@ function scheduleDiscordSend() {
       log('No matches found.');
     }
     scheduleDiscordSend();
-  }, msToNextHour + 90000);
+  }, msToNextHour + 100000);
   log(`Wait ${Math.round(msToNextHour / (1000 * 60))}-min for the next candle`);
 }
 
@@ -368,7 +435,8 @@ async function startWebSocketScan() {
   scheduleDiscordSend();
 }
 
+// ---------------- Main ----------------
 (async () => {
-  log('Starting Binance Perpetual 1hr Candle Bot');
+  log('Starting Binance Perpetual 1h Candle Bot');
   await startWebSocketScan();
 })();

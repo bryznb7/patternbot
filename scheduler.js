@@ -1,4 +1,4 @@
-//Fifteen
+//Fifteen 13
 const DISCORD_WEBHOOK_URLFifteen = "https://discord.com/api/webhooks/1432708910602518618/M_14YE_pqVD1kdf8uOaeo0fysJ0Nkyktx50MuDI3lldScwxXEoN1tztk9S6ct71YDYBC";
 function scheduleDiscordSend() {
   const now = new Date();
@@ -21,7 +21,7 @@ function scheduleDiscordSend() {
   log(`Wait ${Math.round(msToNext15 / (1000 * 60))}-min for the next candle`);
 }
 
-//Hour
+//Hour 13
 const DISCORD_WEBHOOK_URL15 = "https://discord.com/api/webhooks/1432657847577088100/LrQTnqD0xlzOcZqiiws2mW6GjqJFodCHEYx_wy0FQWGHIBcuIa-w1_5fh5xqWwb29I1y";
 function scheduleDiscordSend() {
   const now = new Date();
@@ -43,7 +43,7 @@ function scheduleDiscordSend() {
   log(`Wait ${Math.round(msToNextHour / (1000 * 60))}-min for the next candle`);
 }
 
-//4 Hour
+//4 Hour 13
 const DISCORD_WEBHOOK_URLFour = "https://discord.com/api/webhooks/1432633780778045541/xVI-rpCHfZKn2umm4ds1qdNirRgTim0SUV-FG_-qcH-gh30Oz415slaOvABaGrUcJzB9";
 function scheduleDiscordSend() {
   const now = new Date();
@@ -76,7 +76,7 @@ function scheduleDiscordSend() {
   log(`Wait ${Math.round(msToNext4Hour / (1000 * 60 * 60))}-hour for the next candle`);
 }
 
-//Daily
+//Daily 13
 const DISCORD_WEBHOOK_URLDaily = "https://discord.com/api/webhooks/1434892460206850069/1NdbPDfxmmBSV_6kvoYR7qT8wZbeWAtI8wuXFmaDt30eDaVK3_a7eDf-yDNzq8wAJMMn";
 function scheduleDiscordSend() {
     const now = new Date();
@@ -110,7 +110,7 @@ function scheduleDiscordSend() {
     log(`Wait ${Math.round(hoursLeft)}-hour ${Math.round(minutesLeft)}-min for the next candle`);
 }
 
-//Weekly
+//Weekly 8
 const DISCORD_WEBHOOK_URLWeekly = "https://discord.com/api/webhooks/1437124448473055274/TklUH8747c85jkreu65csUnNwq2QzDparKklEoyiJw4yBpNtg6gyP7cZC6xiEMVM-85y";
 function scheduleDiscordSend() {
     const now = new Date();
@@ -151,7 +151,8 @@ function scheduleDiscordSend() {
     const minutesLeft = Math.floor((msToNextMonday8AM % (1000 * 60 * 60)) / (1000 * 60));
     log(`Wait ${daysLeft}d ${hoursLeft}h ${minutesLeft}m for the next weekly candle`);
 }
-//Monthly
+
+//Monthly 5
 const DISCORD_WEBHOOK_URLMonthly = "https://discord.com/api/webhooks/1440367987528962048/J27rm6PBYnOoYk6DeVK8ODiBUiHkCXmFSm2mSYH4V6on0jgGTlh4bc7DnegY8-G80XG3";
 function scheduleDiscordSend() {
     const now = new Date();

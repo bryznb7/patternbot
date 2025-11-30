@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS candles (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     symbol TEXT,
     timeframe TEXT,
-    open_time TEXT,
+    open_time DATETIME,
     volume REAL,
     avg_volume REAL,
     volume_spike REAL,
@@ -39,6 +39,20 @@ function log(msg) {
   console.log(`[${taipeiTime}] ${msg}`);
 }
 
+function formatToSQLDate(dateInput) {
+    const dt = new Date(dateInput);
+
+    const year = dt.getFullYear();
+    const month = String(dt.getMonth() + 1).padStart(2, '0');
+    const day = String(dt.getDate()).padStart(2, '0');
+    const hour = String(dt.getHours()).padStart(2, '0');
+    const minute = String(dt.getMinutes()).padStart(2, '0');
+    const second = String(dt.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hour}:${minute}:${second}`;
+}
+
+
 // ---------------- Save matches to SQLite ----------------
 function saveMatchesToDB(matches, timeframe = '15m') {
   const stmt = db.prepare(`
@@ -46,12 +60,11 @@ function saveMatchesToDB(matches, timeframe = '15m') {
     (symbol, timeframe, open_time, volume, avg_volume, volume_spike, ema_hit, candle_type, change, range)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `);
-  const now = Date.now();
 
   matches.forEach(e => {
     const volumeM = (e.curr.volume / 1_000_000).toFixed(2);
     const avgM = (e.avgVolume / 1_000_000).toFixed(2);
-    const datecandle = new Date(e.curr.openTime).toLocaleString('en-US', { timeZone: 'Asia/Taipei' });
+    const datecandle = formatToSQLDate(e.curr.openTime);
     stmt.run(
       e.symbol,
       timeframe,

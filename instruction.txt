@@ -1,1 +1,3 @@
 rm bot-daily-ws.js bot-weekly-ws.js bot-monthly-ws.js bot-hour-ws.js bot-fourhr-ws.js
+rm bot_dummy.db dashboard_dummy.html server-gc.js
+mv dashboard_gc.html logo.png public

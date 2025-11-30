@@ -1,0 +1,1203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>Pattern Scanner Dashboard</title>
+    <meta name="viewport" content="width=1280" />
+    <style>
+        :root {
+            --bg-body: #050711;
+            --bg-surface: #0b1020;
+            --bg-card: #111827;
+            --bg-card-alt: #020617;
+            --border-subtle: #1f2937;
+            --border-strong: #374151;
+            --text-primary: #e5e7eb;
+            --text-muted: #9ca3af;
+            --accent: #3b82f6;
+            --accent-soft: rgba(59, 130, 246, 0.2);
+            --positive: #22c55e;
+            --positive-soft: rgba(34, 197, 94, 0.12);
+            --negative: #ef4444;
+            --negative-soft: rgba(239, 68, 68, 0.12);
+            --radius-lg: 12px;
+            --radius-md: 8px;
+            --radius-pill: 999px;
+            --shadow-elevated: 0 18px 45px rgba(0, 0, 0, 0.6);
+        }
+
+        .green {
+            color: var(--positive);
+        }
+
+        .red {
+            color: var(--negative);
+        }
+
+        html,
+        body {
+            height: 100%;
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-user-drag: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI",
+                sans-serif;
+            background-color: var(--bg-body);
+            color: var(--text-primary);
+        }
+
+        .app-logo {
+            height: 50px;
+            width: auto;
+            border-radius: 9px;
+            background: radial-gradient(circle at 10% 10%, rgba(243, 186, 47, 0.18), transparent 55%);
+            padding: 3px;
+        }
+
+        .logo-text {
+            margin-left: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .card,
+        .cardTable,
+        .dashboard {
+            min-width: 0;
+        }
+
+        .dashboard {
+            height: 100vh;
+            padding: 18px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .top-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 14px 18px;
+            background: radial-gradient(circle at top left, #1f2937 0, #020617 45%) no-repeat;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-subtle);
+            box-shadow: var(--shadow-elevated);
+        }
+
+        .top-bar-left {
+            display: flex;
+            flex-direction: center;
+            gap: 4px;
+        }
+
+        .top-title {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: 0.02em;
+        }
+
+        .top-subtitle {
+            font-size: 12px;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.18em;
+        }
+
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .chip-time {
+            padding: 5px 10px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border-subtle);
+            background: rgba(15, 23, 42, 0.7);
+        }
+
+        .avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #3b82f6, #22c55e);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 13px;
+            font-weight: 600;
+            color: #0b1020;
+        }
+
+        .content {
+            display: grid;
+            grid-template-columns: 330px minmax(0, 1fr);
+            gap: 16px;
+            align-items: stretch;
+            flex: 1;
+            min-height: 0;
+        }
+
+        .card,
+        .cardTable {
+            background: radial-gradient(circle at top left, #111827 0, #020617 60%) no-repeat;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--border-subtle);
+            padding: 14px 16px;
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+            max-height: 100vh;
+            overflow-y: auto;
+            scrollbar-width: thin;
+            scrollbar-color: #4B5563 #1F2937;
+            /* thumb + track */
+        }
+
+        /* Chrome, Edge, Safari */
+        .card::-webkit-scrollbar,
+        .cardTable::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .card::-webkit-scrollbar-track,
+        .cardTable::-webkit-scrollbar-track {
+            background: #1F2937;
+            /* dark track */
+            border-radius: 10px;
+        }
+
+        .card::-webkit-scrollbar-thumb,
+        .cardTable::-webkit-scrollbar-thumb {
+            background-color: #4B5563;
+            /* gray thumb */
+            border-radius: 10px;
+        }
+
+        .card::-webkit-scrollbar-thumb:hover,
+        .cardTable::-webkit-scrollbar-thumb:hover {
+            background-color: #6B7280;
+        }
+
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            text-transform: uppercase;
+            letter-spacing: 0.16em;
+            color: var(--text-muted);
+        }
+
+        .filters-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .field-group-label {
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .field-row {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .field-row-3 {
+            display: grid;
+            grid-template-columns: minmax(0, 1.5fr) repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+
+        .form-control,
+        .form-select {
+            width: 100%;
+            padding: 6px 8px;
+            border-radius: 7px;
+            border: 1px solid var(--border-strong);
+            background: rgba(2, 6, 23, 0.8);
+            color: var(--text-primary);
+            font-size: 13px;
+            outline: none;
+            transition: border-color 0.12s ease, box-shadow 0.12s ease,
+                background-color 0.12s ease;
+        }
+
+        .form-control::placeholder {
+            color: #6b7280;
+        }
+
+        .form-control:focus,
+        .form-select:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 1px var(--accent-soft);
+            background: #020617;
+        }
+
+        .checkbox-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .checkbox-row input[type="checkbox"] {
+            width: 14px;
+            height: 14px;
+            accent-color: var(--accent);
+            cursor: pointer;
+        }
+
+        .inline-text {
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .date-row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-size: 13px;
+        }
+
+        .date-row span {
+            color: var(--text-muted);
+        }
+
+        .date-picker-btn {
+            margin-left: 8px;
+            padding: 4px 8px;
+            border-radius: var(--radius-pill);
+            border: 1px dashed var(--border-subtle);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--accent);
+            font-size: 11px;
+            cursor: pointer;
+        }
+
+        .time-row {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 8px;
+            align-items: center;
+        }
+
+        .actions-row {
+            margin-top: 8px;
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            padding: 7px 16px;
+            border-radius: var(--radius-pill);
+            border: none;
+            background: linear-gradient(135deg, #3b82f6, #2563eb);
+            color: #ffffff;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            box-shadow: 0 8px 18px rgba(37, 99, 235, 0.45);
+            white-space: nowrap;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        }
+
+        .btn-ghost {
+            padding: 7px 12px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border-subtle);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 10px;
+        }
+
+        .results-title {
+            font-size: 15px;
+            font-weight: 500;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+        }
+
+        .badge-count {
+            padding: 4px 10px;
+            border-radius: var(--radius-pill);
+            background: rgba(15, 23, 42, 0.9);
+            border: 1px solid var(--border-subtle);
+            font-size: 12px;
+            color: var(--text-muted);
+        }
+
+        .table-wrapper {
+            position: relative;
+            border-radius: 10px;
+            border: 1px solid var(--border-subtle);
+            overflow-y: auto;
+            background: rgba(2, 6, 23, 0.85);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        thead {
+            background: #020617;
+        }
+
+        thead th {
+            padding: 8px 10px;
+            text-align: center;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.14em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-subtle);
+            background: #020617;
+            backdrop-filter: blur(6px);
+        }
+
+        tbody tr:nth-child(even) {
+            background: rgba(15, 23, 42, 0.7);
+        }
+
+        tbody tr:nth-child(odd) {
+            background: rgba(15, 23, 42, 0.4);
+        }
+
+        tbody tr:hover {
+            background: rgba(37, 99, 235, 0.25);
+        }
+
+        td {
+            padding: 7px 10px;
+            border-bottom: 1px solid #020617;
+            white-space: nowrap;
+        }
+
+        td.numeric {
+            text-align: center;
+            font-variant-numeric: tabular-nums;
+        }
+
+        td.center {
+            text-align: center;
+        }
+
+        .badge {
+            padding: 2px 6px;
+            border-radius: 999px;
+            border: 1px solid rgba(55, 65, 81, 0.9);
+            background: rgba(15, 23, 42, 0.95);
+            font-size: 10px;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .badge-green {
+            border-color: rgba(74, 222, 128, 0.7);
+            color: #bbf7d0;
+            background: rgba(22, 101, 52, 0.4);
+        }
+
+        .badge-red {
+            border-color: rgba(248, 113, 113, 0.7);
+            color: #fecaca;
+            background: rgba(127, 29, 29, 0.4);
+        }
+
+        .badge-neutral {
+            background: rgba(148, 163, 184, 0.14);
+            color: var(--text-primary);
+            border: 1px solid rgba(148, 163, 184, 0.35);
+        }
+
+        .text-muted {
+            color: var(--text-muted);
+        }
+
+        .table-footer {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 8px 10px;
+            font-size: 12px;
+            color: var(--text-muted);
+            background: #020617;
+            border-top: 1px solid var(--border-subtle);
+        }
+
+        .footer-left,
+        .footer-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .footer-select {
+            padding: 4px 8px;
+            border-radius: 7px;
+            border: 1px solid var(--border-strong);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-primary);
+            font-size: 12px;
+        }
+
+        .pagination-btn {
+            padding: 4px 8px;
+            border-radius: var(--radius-pill);
+            border: 1px solid var(--border-subtle);
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-muted);
+            font-size: 12px;
+            cursor: pointer;
+        }
+
+        .pagination-page {
+            padding: 0 6px;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .dateTo {
+            display: none;
+        }
+
+        .inputfield{
+            width: 100%;
+        }
+
+        @media only screen and (max-width: 480px) {
+            *{
+                box-sizing: border-box;
+            }
+
+            .top-title,
+            .header-title {
+                font-size: 18px;
+            }
+
+            .dashboard {
+                gap: 10px;
+                padding: 12px;
+            }
+
+            .app-logo {
+                width: auto;
+                height: 45px;
+            }
+
+            .chip-time {
+                font-size: 10px;
+            }
+
+            .top-bar {
+                padding: 10px;
+            }
+
+            .content {
+                height: 100%;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .card {
+                padding: 10px;
+                overflow: hidden;
+            }
+
+            .cardTable {
+                height: 100%;
+            }
+
+            .card-title,
+            .results-title {
+                font-size: 12px;
+            }
+
+            /* Filters section collapsible */
+            .card:first-of-type {
+                border: 1px solid var(--border-strong);
+            }
+
+            .card:first-of-type .card-header {
+                cursor: pointer;
+            }
+
+            .card-header {
+                margin-bottom: 2px;
+            }
+
+            .inputfield{
+                display: flex;
+                flex-direction: row;
+                box-sizing: border-box;
+            }
+
+            .timeframe{
+                margin-left: 8px;
+                width: 100px;
+                min-height: 30px;
+            }
+
+            .card:first-of-type .filters-grid {
+                display: none;
+            }
+
+            .card:first-of-type.expanded .filters-grid {
+                display: flex;
+                height: 1000px;
+            }
+
+            .field-group-label {
+                font-size: 9px;
+                letter-spacing: 0.12em;
+                margin-bottom: 2px;
+            }
+
+            .field-row {
+                display: flex;
+                flex-direction: row;
+            }
+
+
+            .form-control,
+            .form-select {
+                width: 100%;
+                padding: 2px 4px;
+                border-radius: 7px;
+                border: 1px solid var(--border-strong);
+
+                font-size: 9px;
+
+            }
+
+            .table-wrapper table {
+                font-size: 11px;
+            }
+
+            .top-bar,
+            header,
+            .header-bar {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 6px;
+            }
+
+            /* Make inputs, selects, and buttons easy to tap */
+            input[type="text"],
+            input[type="number"],
+            select,
+            button,
+            .btn,
+            .btn-primary,
+            .btn-secondary {
+                width: 100%;
+                min-height: 30px;
+            }
+
+
+        }
+    </style>
+</head>
+
+<body>
+    <div class="dashboard">
+        <header class="top-bar">
+            <div class="top-bar-left">
+                <img src="logo.png" alt="Pattern Scanner logo" class="app-logo" />
+                <div class="logo-text">
+                    <div class="top-title">Dashboard</div>
+                    <div class="top-subtitle">Crypto candlestick screener</div>
+                </div>
+
+            </div>
+            <div class="top-bar-right">
+                <div class="chip-time" id="chip-time">
+
+                </div>
+            </div>
+        </header>
+
+        <main class="content">
+            <!-- LEFT: FILTERS -->
+            <section class="card">
+                <div class="card-header">
+                    <div class="card-title">Filters & Search</div>
+                </div>
+
+                <div class="filters-grid">
+                    <!-- Market & Pattern -->
+                    <div>
+                        <div class="field-group-label">Market & Pattern</div>
+                        <div class="inputfield">
+                            <div class="field-row">
+                                <!-- Symbol (input node="1") -->
+                                <input id="symbol" aria-label="Symbol" node="1" class="form-control"
+                                    placeholder="Symbol" />
+                                <!-- Type (select node="2") -->
+                                <select id="ctype" aria-haspopup="menu" value="All Types" node="2" class="form-select">
+                                    <menu>
+                                        <option value="" selected node="317">All Types</option>
+                                        <option value="inverted_hammer" node="320">Inverted Hammer</option>
+                                        <option value="big_green" node="323">Big Green</option>
+                                        <option value="small_green" node="326">Small Green</option>
+                                        <option value="hammer" node="329">Hammer</option>
+                                        <option value="shooting_star" node="332">Shooting Star</option>
+                                        <option value="big_red" node="335">Big Red</option>
+                                        <option value="small_red" node="338">Small Red</option>
+                                        <option value="hanging_man" node="341">Hanging Man</option>
+                                    </menu>
+                                </select>
+                            </div>
+                            <div class="timeframe" style="margin-top:8px;">
+                                <!-- Timeframe (select node="3") -->
+                                <select id="tf" aria-haspopup="menu" value="15 Minute" node="3" class="form-select">
+                                    <menu>
+                                        <option value="15m" node="350">15 Minute</option>
+                                        <option value="1h" selected node="353">1 Hour</option>
+                                        <option value="4h" node="356">4 Hour</option>
+                                        <option value="1d" node="359">Daily</option>
+                                        <option value="1w" node="362">Weekly</option>
+                                        <option value="1M" node="365">Monthly</option>
+                                    </menu>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Signal thresholds -->
+                    <div>
+                        <div class="field-group-label">Signal thresholds</div>
+                        <div class="field-row">
+                            <input id="minspike" type="number" aria-label="Spike" node="4" class="form-control"
+                                placeholder="Spike" />
+                            <input id="minvolume" type="number" aria-label="Volume" node="5" class="form-control"
+                                placeholder="Volume" />
+                        </div>
+                        <div class="field-row" style="margin-top:6px;">
+                            <input id="minchange" type="number" aria-label="Change" node="6" class="form-control"
+                                placeholder="Change %" />
+                            <input id="minrange" type="number" aria-label="Range" node="7" class="form-control"
+                                placeholder="Range %" />
+                        </div>
+                    </div>
+
+                    <!-- EMA & date -->
+                    <div>
+                        <div class="field-group-label">EMA & Date</div>
+                        <div class="field-row">
+                            <div class="checkbox-row">
+                                <input id="emahit" type="checkbox" aria-label="EMA Hit" node="8" />
+                                <span>EMA Hit</span>
+                            </div>
+                            <select id="typedate" aria-haspopup="menu" node="9" class="form-select">
+                                <menu>
+                                    <option value="exact" node="386">Exact</option>
+                                    <option value="range" node="389">Range</option>
+                                </menu>
+                            </select>
+                        </div>
+
+                        <div class="dateFrom">
+                            <div class="date-row" style="margin-top:6px;">
+                                <input type="date" class="form-control" id="datePickerF" />
+                            </div>
+
+                            <div class="time-row" style="margin-top:8px;">
+                                <select id="hourPickerF" aria-haspopup="menu" value="01" node="11" class="form-select">
+                                    <menu>
+                                        <option value="01" selected node="407">01</option>
+                                        <option value="02" node="410">02</option>
+                                        <option value="03" node="413">03</option>
+                                        <option value="04" node="416">04</option>
+                                        <option value="05" node="419">05</option>
+                                        <option value="06" node="422">06</option>
+                                        <option value="07" node="425">07</option>
+                                        <option value="08" node="428">08</option>
+                                        <option value="09" node="431">09</option>
+                                        <option value="10" node="434">10</option>
+                                        <option value="11" node="437">11</option>
+                                        <option value="12" node="440">12</option>
+                                    </menu>
+                                </select>
+                                <select id="minutePickerF" aria-haspopup="menu" value="00" node="12"
+                                    class="form-select">
+                                    <menu>
+                                        <option value="00" selected node="449">00</option>
+                                        <option value="15" node="452">15</option>
+                                        <option value="30" node="455">30</option>
+                                        <option value="45" node="458">45</option>
+                                    </menu>
+                                </select>
+                                <select id="AMPMPickerF" aria-haspopup="menu" value="AM" node="13" class="form-select">
+                                    <menu>
+                                        <option value="AM" selected node="467">AM</option>
+                                        <option value="PM" node="470">PM</option>
+                                    </menu>
+                                </select>
+                                <div class="date-row" style="margin-top:6px;">
+                                    <input type="hidden" id="exactTimeF">
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="dateTo">
+                            <div class="date-row" style="margin-top:6px;">
+                                <input type="date" class="form-control" id="datePickerT" />
+                            </div>
+
+                            <div class="time-row" style="margin-top:8px;">
+                                <select id="hourPickerT" aria-haspopup="menu" value="01" node="11" class="form-select">
+                                    <menu>
+                                        <option value="01" selected node="407">01</option>
+                                        <option value="02" node="410">02</option>
+                                        <option value="03" node="413">03</option>
+                                        <option value="04" node="416">04</option>
+                                        <option value="05" node="419">05</option>
+                                        <option value="06" node="422">06</option>
+                                        <option value="07" node="425">07</option>
+                                        <option value="08" node="428">08</option>
+                                        <option value="09" node="431">09</option>
+                                        <option value="10" node="434">10</option>
+                                        <option value="11" node="437">11</option>
+                                        <option value="12" node="440">12</option>
+                                    </menu>
+                                </select>
+                                <select id="minutePickerT" aria-haspopup=" menu" value="00" node="12"
+                                    class="form-select">
+                                    <menu>
+                                        <option value="00" selected node="449">00</option>
+                                        <option value="15" node="452">15</option>
+                                        <option value="30" node="455">30</option>
+                                        <option value="45" node="458">45</option>
+                                    </menu>
+                                </select>
+                                <select id="AMPMPickerT" aria-haspopup="menu" value="AM" node="13" class="form-select">
+                                    <menu>
+                                        <option value="AM" selected node="467">AM</option>
+                                        <option value="PM" node="470">PM</option>
+                                    </menu>
+                                </select>
+                                <div class="date-row" style="margin-top:6px;">
+                                    <input type="hidden" id="exactTimeT">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="actions-row">
+                        <!-- The original plain text "Search" is now a styled button; hook your existing click handler to this element if needed -->
+                        <button class="btn-primary" onclick="search()">
+                            Search
+                        </button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT: TABLE -->
+            <section class="cardTable">
+                <div class="results-header">
+                    <div class="results-title">Results</div>
+                    <div class="badge-count">
+                        <span id="status"></span>
+                    </div>
+                </div>
+
+                <div class="table-wrapper">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Time</th>
+                                <th>Symbol</th>
+                                <th>Type</th>
+                                <th>Vol (M)</th>
+                                <th>Avg Vol (M)</th>
+                                <th>Spike</th>
+                                <th>Change (%)</th>
+                                <th>Range (%)</th>
+                                <th>EMA Hit</th>
+                            </tr>
+                        </thead>
+                        <tbody id="rows"></tbody>
+                    </table>
+
+                    <div class="table-footer">
+                        <div class="footer-left">
+                            <span>Rows per page:</span>
+                            <select id="limit" aria-haspopup="menu" value="50" node="18" class="footer-select"
+                                onchange="search()">
+                                <menu>
+                                    <option node="564">25</option>
+                                    <option selected node="567">50</option>
+                                    <option node="570">100</option>
+                                </menu>
+                            </select>
+                        </div>
+                        <div class="footer-right">
+                            <button class="pagination-btn" onclick="prevPage()">Prev</button>
+                            <span class="pagination-page" id="pageinfo"></span>
+                            <button class="pagination-btn" onclick="nextPage()">Next</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+    <script>
+        /*Mobile Phone*/
+        const filterCard = document.querySelector(".card:first-of-type");
+        const filterHeader = filterCard.querySelector(".card-header");
+
+        filterHeader.addEventListener("click", () => {
+            filterCard.classList.toggle("expanded");
+        });
+
+        let currentPage = 1;
+        let allData = [];
+
+        function getTypeBadgeClass(type) {
+            const t = String(type)
+
+            if (t === 'hammer' || t === 'inverted_hammer' || t === 'big_green' || t === 'small_green') {
+                return 'badge badge-green';
+            }
+            return 'badge badge-red';
+        }
+
+
+        async function search(isPagination = false) {
+
+            if (!isPagination) currentPage = 1;
+
+            const symbol = document.getElementById("symbol").value;
+            const type = document.getElementById("ctype").value;
+            const tf = document.getElementById("tf").value;
+            const minspike = document.getElementById("minspike").value;
+            const minvolume = document.getElementById("minvolume").value;
+            const minchange = document.getElementById("minchange").value;
+            const minrange = document.getElementById("minrange").value;
+            const limit = parseInt(document.getElementById("limit").value);
+            const exactTimeF = document.getElementById("exactTimeF").value;
+            const exactTimeT = document.getElementById("exactTimeT").value;
+            const emaHit = document.getElementById("emahit").checked ? 1 : 0;
+            const offset = (currentPage - 1) * limit;
+            const typedate = document.getElementById("typedate").value;
+
+
+            const params = new URLSearchParams({ symbol, type, tf, minspike, minvolume, minchange, minrange, typedate, exactTimeF, exactTimeT, emaHit });
+            const url = `http://34.80.104.70/api/candles?${params.toString()}`;
+
+            try {
+                const res = await fetch(url);
+                allData = await res.json();
+
+                const totalPages = Math.ceil(allData.length / limit);
+                if (currentPage > totalPages) {
+                    currentPage = 1;
+                }
+
+                const pageData = allData.slice(offset, offset + limit);
+                const tbody = document.getElementById("rows");
+                tbody.innerHTML = "";
+
+
+                pageData.forEach(row => {
+                    const type = row.candle_type;
+                    const badgeClass = getTypeBadgeClass(type);
+                    const tr = document.createElement("tr");
+                    tr.innerHTML = `
+                <td data-label="Time">${row.open_time}</td>
+                <td data-label="Symbol">${row.symbol}</td>
+                <td class="center"><span class="${badgeClass}">${type}</span></td>
+                <td class="numeric" data-label="Vol (M)">${row.volume}</td>
+                <td class="numeric" data-label="Avg Vol (M)">${row.avg_volume}</td>
+                <td class="numeric" data-label="Spike">${row.volume_spike.toFixed(2)}</td>
+                <td class="numeric text-muted" data-label="Change (%)"><span class="${row.change >= 0 ? 'green' : 'red'}">${row.change}</span></td>
+                <td class="numeric" data-label="Range (%)">${row.range}</td>
+                <td class="center" data-label="EMA Hit">${row.ema_hit}</td>
+            `;
+                    tbody.appendChild(tr);
+                });
+
+                document.getElementById("pageinfo").textContent = `Page ${currentPage} of ${totalPages}`;
+                document.getElementById("status").textContent = `Total rows: ${allData.length}`;
+
+                document.getElementById("symbol").value = "";
+                document.getElementById("ctype").selectedIndex = 0;
+                document.getElementById("minspike").value = "";
+                document.getElementById("minvolume").value = "";
+                document.getElementById("minchange").value = "";
+                document.getElementById("minrange").value = "";
+                document.getElementById("emahit").checked = false;
+                document.getElementById("typedate").selectedIndex = 0;
+
+                // Date/time pickers
+                document.getElementById("datePickerF").value = "";
+                document.getElementById("hourPickerF").selectedIndex = 0;
+                document.getElementById("minutePickerF").selectedIndex = 0;
+                document.getElementById("AMPMPickerF").selectedIndex = 0;
+
+                document.getElementById("datePickerT").value = "";
+                document.getElementById("hourPickerT").selectedIndex = 0;
+                document.getElementById("minutePickerT").selectedIndex = 0;
+                document.getElementById("AMPMPickerT").selectedIndex = 0;
+
+                // Hidden fields
+                document.getElementById("exactTimeF").value = "";
+                document.getElementById("exactTimeT").value = "";
+
+                updateDateToVisibility();
+            } catch (err) {
+                console.error(err);
+                document.getElementById("status").textContent = "Error loading data";
+            }
+        }
+
+        function prevPage() {
+            if (currentPage > 1) {
+                currentPage--;
+                search(true);
+            }
+        }
+
+        function nextPage() {
+            const limit = parseInt(document.getElementById("limit").value);
+            const totalPages = Math.ceil(allData.length / limit);
+            if (currentPage < totalPages) {
+                currentPage++;
+                search(true);
+            }
+        }
+
+        function getExactTime(type, timeframe) {
+            const dateInput = document.getElementById("datePicker" + type).value;
+            if (!dateInput) return null;
+
+            let year, month, day, hour, minute, ampm;
+
+            if (timeframe === "15m") {
+                hour = parseInt(document.getElementById("hourPicker" + type).value, 10);
+                minute = document.getElementById("minutePicker" + type).value;
+                ampm = document.getElementById("AMPMPicker" + type).value;
+                if (!hour || !minute || !ampm) return null;
+            } else if (timeframe === "1h" || timeframe === "4h") {
+                hour = parseInt(document.getElementById("hourPicker" + type).value, 10);
+                minute = "00";
+                ampm = document.getElementById("AMPMPicker" + type).value;
+                if (!hour || !ampm) return null;
+            } else if (timeframe === "1d") {
+                hour = 8;
+                minute = "00";
+                ampm = "AM";
+            } else if (timeframe === "1w") {
+                // dateInput from week picker: "YYYY-Www"
+                const [weekYear, weekNumber] = dateInput.split("-W").map(Number);
+                // Calculate Monday of that week
+                const firstDayOfYear = new Date(weekYear, 0, 1);
+                const daysOffset = ((weekNumber - 1) * 7) - firstDayOfYear.getDay() + 1;
+                const monday = new Date(weekYear, 0, 1 + daysOffset);
+                year = monday.getFullYear();
+                month = monday.getMonth() + 1;
+                day = monday.getDate();
+                hour = 8;
+                minute = 0;
+                ampm = "AM";
+            } else if (timeframe === "1M") {
+                // dateInput from month picker: "YYYY-MM"
+                [year, month] = dateInput.split("-").map(Number);
+                day = 1;
+                hour = 8;
+                minute = 0;
+                ampm = "AM";
+            }
+
+            // Convert 12-hour to 24-hour for 15m, 1h, 4h, 1d
+            let hour24 = hour;
+            if (["15m", "1h", "4h", "1d"].includes(timeframe)) {
+                if (ampm === "PM" && hour < 12) hour24 += 12;
+                if (ampm === "AM" && hour === 12) hour24 = 0;
+            }
+
+            // Build final Date object
+            if (!year) {
+                [year, month, day] = dateInput.split("-").map(Number);
+            }
+            const dt = new Date(year, month - 1, day, hour24, parseInt(minute, 10), 0);
+
+            // Format to "YYYY-MM-DD HH:MM:SS"
+            return `${dt.getFullYear()}-${(dt.getMonth() + 1).toString().padStart(2, '0')}-${dt.getDate().toString().padStart(2, '0')} ${dt.getHours().toString().padStart(2, '0')}:${dt.getMinutes().toString().padStart(2, '0')}:${dt.getSeconds().toString().padStart(2, '0')}`;
+        }
+
+
+        const typeDateSelect = document.getElementById("typedate");
+        const dateToDiv = document.querySelector(".dateTo");
+        const tfSelect = document.getElementById("tf");
+
+        function updateExactTime(type) {
+            const timeframe = document.getElementById("tf").value;
+            const exactInput = document.getElementById("exactTime" + type);
+            exactInput.value = getExactTime(type, timeframe) || "";
+        }
+
+        function updateDateToVisibility() {
+            if (typeDateSelect.value === "exact") {
+                dateToDiv.style.display = "none";
+            } else {
+                dateToDiv.style.display = "block";
+            }
+        }
+
+        function updateMinutePickers() {
+            const timeframe = tfSelect.value;
+
+            const minuteF = document.getElementById("minutePickerF");
+            const minuteT = document.getElementById("minutePickerT");
+            const hourF = document.getElementById("hourPickerF");
+            const hourT = document.getElementById("hourPickerT");
+            const AMPMF = document.getElementById("AMPMPickerF");
+            const AMPMT = document.getElementById("AMPMPickerT");
+            const datePickerF = document.getElementById("datePickerF");
+            const datePickerT = document.getElementById("datePickerT");
+
+
+            function setHourOptions(hourSelect, options) {
+                hourSelect.innerHTML = "";
+                options.forEach(h => {
+                    const opt = document.createElement("option");
+                    opt.value = h.toString().padStart(2, "0");
+                    opt.textContent = h.toString().padStart(2, "0");
+                    hourSelect.appendChild(opt);
+                });
+            }
+
+            minuteF.style.display = "inline-block";
+            minuteT.style.display = "inline-block";
+            hourF.style.display = "inline-block";
+            hourT.style.display = "inline-block";
+            AMPMF.style.display = "inline-block";
+            AMPMT.style.display = "inline-block";
+            datePickerF.type = "date";
+            datePickerT.type = "date";
+
+            let hoursF = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+            let hoursT = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
+
+            if (timeframe === "15m") {
+            } else if (timeframe === "1h") {
+                minuteF.style.display = "none";
+                minuteT.style.display = "none";
+            } else if (timeframe === "4h") {
+                minuteF.style.display = "none";
+                minuteT.style.display = "none";
+                hoursF = [4, 8, 12];
+                hoursT = [4, 8, 12];
+            } else if (timeframe === "1d" || timeframe === "1w" || timeframe === "1M") {
+                minuteF.style.display = "none";
+                minuteT.style.display = "none";
+                hourF.style.display = "none";
+                hourT.style.display = "none";
+                AMPMF.style.display = "none";
+                AMPMT.style.display = "none";
+
+                if (timeframe === "1w") datePickerF.type = datePickerT.type = "week";
+                else if (timeframe === "1M") datePickerF.type = datePickerT.type = "month";
+            }
+
+            if (hourF.style.display !== "none") setHourOptions(hourF, hoursF);
+            if (hourT.style.display !== "none") setHourOptions(hourT, hoursT);
+        }
+
+        function updateChipTime() {
+            const now = new Date();
+
+            const dateFormatter = new Intl.DateTimeFormat('en-US', {
+                weekday: 'short',
+                year: 'numeric',
+                month: 'short',
+                day: '2-digit'
+            });
+
+            const timeFormatter = new Intl.DateTimeFormat('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
+
+            const datePart = dateFormatter.format(now);
+            const timePart = timeFormatter.format(now);
+
+            const chip = document.getElementById('chip-time');
+            if (chip) {
+                chip.textContent = `${datePart} · ${timePart}`;
+            }
+        }
+
+        // run once immediately then update every second
+        updateChipTime();
+        setInterval(updateChipTime, 1000);
+
+        // Initialize on page load
+        updateMinutePickers();
+        search();
+        updateDateToVisibility();
+
+        // Listen for changes in timeframe
+        tfSelect.addEventListener("change", updateMinutePickers);
+        typeDateSelect.addEventListener("change", updateDateToVisibility);
+
+        document.getElementById("datePickerF").addEventListener("change", () => updateExactTime("F"));
+        document.getElementById("hourPickerF").addEventListener("change", () => updateExactTime("F"));
+        document.getElementById("minutePickerF").addEventListener("change", () => updateExactTime("F"));
+        document.getElementById("AMPMPickerF").addEventListener("change", () => updateExactTime("F"));
+
+        document.getElementById("datePickerT").addEventListener("change", () => updateExactTime("T"));
+        document.getElementById("hourPickerT").addEventListener("change", () => updateExactTime("T"));
+        document.getElementById("minutePickerT").addEventListener("change", () => updateExactTime("T"));
+        document.getElementById("AMPMPickerT").addEventListener("change", () => updateExactTime("T"));
+
+    </script>
+</body>
+
+</html>

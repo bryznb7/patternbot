@@ -9,7 +9,9 @@
         body {
             font-family: 'Inter', sans-serif;
             background-color: #0d1117;
+            /* dark navy */
             color: #c9d1d9;
+            /* light gray text */
             margin: 0;
             padding: 20px;
         }
@@ -20,6 +22,7 @@
             font-size: 2rem;
             margin-bottom: 20px;
             color: #58a6ff;
+            /* soft blue accent */
         }
 
         .controls {
@@ -53,15 +56,19 @@
             font-weight: 500;
         }
 
+        /* Inputs / Selects */
         .controls input,
         .controls select,
         .rows select {
-            background-color: #161b22;
+            background-color: #111827;
+            /* darker dark gray */
             color: #c9d1d9;
         }
 
+        /* Buttons */
         .controls button {
             background-color: #238636;
+            /* green accent */
             color: #ffffff;
             cursor: pointer;
             transition: all 0.2s ease-in-out;
@@ -72,6 +79,7 @@
             transform: translateY(-2px);
         }
 
+        /* Table */
         table {
             width: 100%;
             border-collapse: separate;
@@ -86,8 +94,10 @@
         }
 
         th {
-            background: linear-gradient(90deg, #238636, #58a6ff);
-            color: white;
+            background: linear-gradient(90deg, #0f2027, #203a43, #2c5364);
+            /* harmonious dark-blue gradient */
+            color: #f0f6fc;
+            /* off-white for readability */
             font-weight: 600;
             position: sticky;
             top: 0;
@@ -95,17 +105,16 @@
         }
 
         tbody tr {
-            background-color: #161b22;
+            background-color: #111827;
+            /* row color slightly lighter than body */
             transition: transform 0.2s ease, box-shadow 0.2s ease;
             border-radius: 8px;
             margin-bottom: 6px;
             display: table-row;
-            /* normal table row for desktop */
         }
 
         tbody tr td {
             display: table-cell;
-            /* normal cell */
             width: auto;
             padding: 12px 8px;
         }
@@ -113,19 +122,24 @@
         tbody tr:hover {
             transform: scale(1.02);
             box-shadow: 0 4px 12px rgba(0, 138, 255, 0.3);
-            background-color: #0f141b;
+            background-color: #1a2533;
+            /* hover slightly lighter */
         }
 
+        /* Positive / Negative */
         .green {
             color: #3fb950;
+            /* harmonious green */
             font-weight: 600;
         }
 
         .red {
             color: #f85149;
+            /* red alert */
             font-weight: 600;
         }
 
+        /* Pagination */
         .pagination {
             display: flex;
             justify-content: center;
@@ -140,7 +154,7 @@
             border: none;
             cursor: pointer;
             background-color: #238636;
-            color: #fff;
+            color: #f0f6fc;
             font-weight: 600;
             transition: 0.2s;
         }
@@ -162,15 +176,14 @@
             align-items: center;
             cursor: pointer;
             gap: 6px;
-            color: #ddd;
+            color: #c9d1d9;
             padding: 8px 12px;
             border-radius: 8px;
             border: none;
             outline: none;
             font-size: 0.95rem;
             font-weight: 500;
-            background-color: #161b22;
-            color: #c9d1d9;
+            background-color: #111827;
         }
 
         /* Custom checkbox */
@@ -178,21 +191,19 @@
             appearance: none;
             width: 18px;
             height: 18px;
-            border: 2px solid #777;
+            border: 2px solid #555;
             border-radius: 4px;
-            background: #222;
+            background: #161b22;
             transition: background 0.2s, border-color 0.2s;
             display: flex;
             justify-content: center;
             align-items: center;
         }
 
-        /* Hover */
         .modern-checkbox input:hover {
-            border-color: #aaa;
+            border-color: #888;
         }
 
-        /* Checkmark centered */
         .modern-checkbox input:checked {
             background: #29cc7a;
             border-color: #29cc7a;
@@ -209,28 +220,52 @@
             height: 100%;
         }
 
-
-        @media (max-width: 900px) {
-            tbody tr {
-                display: block;
-                /* stacked card view for mobile */
+        @media screen and (max-width: 1024px) {
+            body {
+                padding: 35px;
             }
 
-            tbody tr td {
-                display: block;
-                text-align: left;
-                padding: 8px 12px;
+            h2 {
+                font-size: 75px;
+                margin: 0 0 50px 0;
             }
 
-            tbody tr td::before {
-                content: attr(data-label);
-                font-weight: 600;
-                display: inline-block;
-                width: 100px;
+            .controls,
+            .rows,
+            .pagination {
+                font-size: 24px;
             }
 
-            table thead {
-                display: none;
+            .controls input,
+            .controls select,
+            .controls button,
+            .rows select {
+                font-size: 24px;
+                margin: 8px;
+
+            }
+
+            /* Table: allow horizontal scrolling instead of breaking */
+            table {
+                min-width: 600px;
+
+
+            }
+
+            th,
+            td {
+                padding: 10px 10px;
+                font-size: 16px;
+            }
+
+            /* Pagination */
+            .pagination {
+                flex-direction: row;
+                gap: 6px;
+            }
+
+            .pagination button {
+               font-size: 24px;
             }
         }
     </style>
