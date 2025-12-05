@@ -63,7 +63,23 @@ function queryCandles({ symbol, type, tf, minspike, minvolume, minchange, minran
             params.push(exactTimeF, exactTimeT);
         } else {
             // console.log("Other");
-            sql += " AND open_time >= datetime(date('now') || ' 08:00:00') ORDER BY open_time DESC";
+            if (tf === "1d") {
+                sql += " AND open_time = datetime(date('now', '-1 day') || ' 08:00:00') ORDER BY open_time DESC";
+            } else if (tf === "1w") {
+                sql += `
+                    AND open_time = datetime(
+                        date('now', 'weekday 1', '-14 days') || ' 08:00:00'
+                    ) ORDER BY open_time DESC
+                `;
+            } else if (tf === "1M") {
+                sql += `
+                    AND open_time = datetime(
+                        strftime('%Y-%m-01', 'now', 'start of month', '-1 month') || ' 08:00:00'
+                    ) ORDER BY open_time DESC
+                `;
+            } else {
+                sql += " AND open_time >= datetime(date('now') || ' 08:00:00') ORDER BY open_time DESC";
+            }
         }
 
         db.all(sql, params, (err, rows) => {

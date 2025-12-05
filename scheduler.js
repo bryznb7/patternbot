@@ -1,3 +1,4 @@
+const url = `http://34.80.104.70:3000/api/candles?${params.toString()}`;
 //Fifteen 13
 const DISCORD_WEBHOOK_URLFifteen = "https://discord.com/api/webhooks/1432708910602518618/M_14YE_pqVD1kdf8uOaeo0fysJ0Nkyktx50MuDI3lldScwxXEoN1tztk9S6ct71YDYBC";
 function scheduleDiscordSend() {
@@ -193,3 +194,4 @@ function scheduleDiscordSend() {
 
     log(`Wait ${daysLeft}d ${hoursLeft}h ${minutesLeft}m until next monthly candle (08:00 Taipei)`);
 }
+

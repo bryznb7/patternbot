@@ -6,20 +6,35 @@ const app = express();
 const PORT = 3000;
 
 // ======== Configuration ========
-const DB_PATH = path.join(__dirname, "bot_database.db"); 
-const PUBLIC_FOLDER = path.join(__dirname, "public"); 
+const DB_PATH = path.join(__dirname, "bot_database.db");
+const PUBLIC_FOLDER = path.join(__dirname, "public");
 
 // ======== Middleware ========
 app.use(cors()); // allow frontend to access backend
 app.use(express.static(PUBLIC_FOLDER)); // serve static HTML/JS/CSS
 
-function queryCandles({ symbol, type, tf, minspike, minvolume, minchange, minrange, typedate, exactTimeF, exactTimeT, emaHit }) {
-    return new Promise((resolve, reject) => {
-        const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE);
+const db = new sqlite3.Database(DB_PATH, sqlite3.OPEN_READWRITE, (err) => {
+    if (err) console.error("DB Connection Error:", err);
+    else console.log("Database connected:", DB_PATH);
+});
 
-        let sql = `SELECT open_time, symbol, candle_type, volume, avg_volume, volume_spike, ema_hit, timeframe, change, range
-                   FROM candles WHERE 1=1`;
+// Enable WAL + busy timeout (prevents locking)
+db.exec(`
+    PRAGMA journal_mode = WAL;
+    PRAGMA busy_timeout = 5000;
+`);
+
+function queryCandles({symbol, type, tf, minspike, minvolume, minchange, minrange, typedate,exactTimeF, exactTimeT, emaHit}) {
+    return new Promise((resolve, reject) => {
+        let sql = `
+            SELECT open_time, symbol, candle_type, volume, avg_volume, 
+                   volume_spike, ema_hit, timeframe, change, range
+            FROM candles
+            WHERE 1 = 1
+        `;
+
         const params = [];
+
         if (symbol) {
             sql += " AND symbol LIKE ?";
             params.push(symbol.toUpperCase() + "%");
@@ -48,28 +63,45 @@ function queryCandles({ symbol, type, tf, minspike, minvolume, minchange, minran
             sql += " AND range >= ?";
             params.push(parseFloat(minrange));
         }
+
         if (emaHit == 1) {
-            sql += " AND ema_hit != '' AND ema_hit != '-' ";
+            sql += " AND ema_hit != '' AND ema_hit != '-'";
         }
 
-        if (typedate == "exact" && exactTimeF) {
-            sql += " AND open_time = ? ORDER BY open_time DESC";
+        if (typedate === "exact" && exactTimeF) {
+            sql += " AND open_time = ?";
             params.push(exactTimeF);
         } else if (exactTimeF && exactTimeT) {
-            sql += " AND open_time >= ? AND open_time <= ? ORDER BY open_time DESC";
+            sql += " AND open_time >= ? AND open_time <= ?";
             params.push(exactTimeF, exactTimeT);
         } else {
-            sql += " AND open_time >= datetime(date('now') || ' 08:00:00') ORDER BY open_time DESC";
+             if (tf === "1d") {
+                sql += " AND open_time = datetime(date('now', '-1 day') || ' 08:00:00') ORDER BY open_time DESC";
+            } else if (tf === "1w") {
+                sql += `
+                    AND open_time = datetime(
+                        date('now', 'weekday 1', '-14 days') || ' 08:00:00'
+                    ) ORDER BY open_time DESC
+                `;
+            } else if (tf === "1M") {
+                sql += `
+                    AND open_time = datetime(
+                        strftime('%Y-%m-01', 'now', 'start of month', '-1 month') || ' 08:00:00'
+                    ) ORDER BY open_time DESC
+                `;
+            } else {
+                sql += " AND open_time >= datetime(date('now') || ' 08:00:00') ORDER BY open_time DESC";
+            }
         }
 
+        sql += " ORDER BY open_time DESC";
+
         db.all(sql, params, (err, rows) => {
-            db.close();
             if (err) reject(err);
             else resolve(rows);
         });
     });
 }
-
 
 app.get("/api/candles", async (req, res) => {
     try {

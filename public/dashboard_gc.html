@@ -211,6 +211,11 @@
             gap: 12px;
         }
 
+        .timeframefield{
+            margin-top: 8px;
+            align-items: center;
+        }
+
         .field-group-label {
             font-size: 11px;
             text-transform: uppercase;
@@ -219,7 +224,7 @@
             margin-bottom: 4px;
         }
 
-        .field-row {
+        .field-row, .symboltypefield{
             display: grid;
             grid-template-columns: repeat(2, minmax(0, 1fr));
             gap: 8px;
@@ -408,7 +413,6 @@
 
         td {
             padding: 7px 10px;
-            border-bottom: 1px solid #020617;
             white-space: nowrap;
         }
 
@@ -494,18 +498,15 @@
         .pagination-page {
             padding: 0 6px;
             font-variant-numeric: tabular-nums;
+            white-space: nowrap;
         }
 
         .dateTo {
             display: none;
         }
 
-        .inputfield{
-            width: 100%;
-        }
-
-        @media only screen and (max-width: 480px) {
-            *{
+        @media only screen and (max-width: 480px) and (min-width: 417px) {
+            * {
                 box-sizing: border-box;
             }
 
@@ -546,6 +547,7 @@
 
             .cardTable {
                 height: 100%;
+                padding: 10px;
             }
 
             .card-title,
@@ -566,16 +568,11 @@
                 margin-bottom: 2px;
             }
 
-            .inputfield{
+            .inputfield {
                 display: flex;
                 flex-direction: row;
-                box-sizing: border-box;
-            }
+                width: 100%;
 
-            .timeframe{
-                margin-left: 8px;
-                width: 100px;
-                min-height: 30px;
             }
 
             .card:first-of-type .filters-grid {
@@ -584,20 +581,43 @@
 
             .card:first-of-type.expanded .filters-grid {
                 display: flex;
-                height: 1000px;
+                gap: 6px;
+            }
+
+            .symboltypefield{
+                display: flex;
+                align-items: center;
+                gap: 4px;
+                width: 67%;
+            }
+
+            .field-row {
+                display: flex;
+                align-items: center;
+                margin: 0 !important;
+                gap: 4px;
+            }
+
+            .signalfield, .marketpatternfield{
+                display: flex;
+                align-items: center;
+                gap: 4px;
+            }
+
+            .timeframefield{
+                margin: 0;
+                width: 33%;
+            }
+
+            .filters-grid {
+                height: 420px;
             }
 
             .field-group-label {
                 font-size: 9px;
                 letter-spacing: 0.12em;
-                margin-bottom: 2px;
+                margin-bottom: 4px;
             }
-
-            .field-row {
-                display: flex;
-                flex-direction: row;
-            }
-
 
             .form-control,
             .form-select {
@@ -605,7 +625,7 @@
                 padding: 2px 4px;
                 border-radius: 7px;
                 border: 1px solid var(--border-strong);
-
+                height: 28px;
                 font-size: 9px;
 
             }
@@ -622,17 +642,116 @@
                 gap: 6px;
             }
 
-            /* Make inputs, selects, and buttons easy to tap */
-            input[type="text"],
-            input[type="number"],
-            select,
             button,
-            .btn,
-            .btn-primary,
-            .btn-secondary {
+            .btn-primary {
                 width: 100%;
-                min-height: 30px;
+                height: 28px;
             }
+
+            .btn-primary{
+                font-size: 11px;
+            }
+
+            .date-row {
+                display: block;
+            }
+
+            .dateFrom {
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+
+            .dateTo {
+                display: flex !important;
+                align-items: center;
+                gap: 4px;
+            }
+
+            #typedate {
+                display: none;
+            }
+
+            .dateFromTo {
+                display: flex;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                gap: 4px;
+            }
+
+            .dateFromTo select {
+                width: 45px;
+            }
+
+            .time-row {
+                display: flex;
+                gap: 4px;
+            }
+
+            /*Table*/
+            .table-wrapper {
+                border: none;
+            }
+
+            table thead {
+                display: none;
+            }
+
+            tbody {
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 7px;
+            }
+
+            tbody tr {
+                display: flex;
+                flex-direction: column;
+                background-color: #111827;
+                border-radius: 10px;
+                margin-bottom: 5px;
+                padding: 8px 10px;
+                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+                border: 1px solid var(--border-subtle);
+            }
+
+            tbody tr td {
+                display: flex;
+                justify-content: space-between;
+                padding: 2px 0;
+                font-size: 10px;
+            }
+
+            tbody tr td:last-child {
+                border-bottom: none;
+            }
+
+            tbody tr td::before {
+                content: attr(data-label);
+                font-weight: 600;
+                color: var(--text-muted);
+                flex-shrink: 0;
+                margin-right: 8px;
+            }
+
+
+
+            .footer-select {
+                padding: 2px 4px;
+                border-radius: 7px;
+                font-size: 10px;
+            }
+
+            .table-footer {
+                border: none;
+                padding: 6px 8px;
+                font-size: 10px;
+            }
+
+            .pagination-btn {
+                font-size: 10px;
+            }
+
 
 
         }
@@ -668,8 +787,9 @@
                     <!-- Market & Pattern -->
                     <div>
                         <div class="field-group-label">Market & Pattern</div>
-                        <div class="inputfield">
-                            <div class="field-row">
+
+                        <div class="marketpatternfield">
+                            <div class="symboltypefield">
                                 <!-- Symbol (input node="1") -->
                                 <input id="symbol" aria-label="Symbol" node="1" class="form-control"
                                     placeholder="Symbol" />
@@ -688,7 +808,7 @@
                                     </menu>
                                 </select>
                             </div>
-                            <div class="timeframe" style="margin-top:8px;">
+                            <div class="timeframefield">
                                 <!-- Timeframe (select node="3") -->
                                 <select id="tf" aria-haspopup="menu" value="15 Minute" node="3" class="form-select">
                                     <menu>
@@ -702,23 +822,28 @@
                                 </select>
                             </div>
                         </div>
+
+
                     </div>
 
                     <!-- Signal thresholds -->
                     <div>
                         <div class="field-group-label">Signal thresholds</div>
-                        <div class="field-row">
-                            <input id="minspike" type="number" aria-label="Spike" node="4" class="form-control"
-                                placeholder="Spike" />
-                            <input id="minvolume" type="number" aria-label="Volume" node="5" class="form-control"
-                                placeholder="Volume" />
+                        <div class="signalfield">
+                            <div class="field-row">
+                                <input id="minspike" type="number" aria-label="Spike" node="4" class="form-control"
+                                    placeholder="Spike" />
+                                <input id="minvolume" type="number" aria-label="Volume" node="5" class="form-control"
+                                    placeholder="Volume" />
+                            </div>
+                            <div class="field-row" style="margin-top:6px;">
+                                <input id="minchange" type="number" aria-label="Change" node="6" class="form-control"
+                                    placeholder="Change %" />
+                                <input id="minrange" type="number" aria-label="Range" node="7" class="form-control"
+                                    placeholder="Range %" />
+                            </div>
                         </div>
-                        <div class="field-row" style="margin-top:6px;">
-                            <input id="minchange" type="number" aria-label="Change" node="6" class="form-control"
-                                placeholder="Change %" />
-                            <input id="minrange" type="number" aria-label="Range" node="7" class="form-control"
-                                placeholder="Range %" />
-                        </div>
+
                     </div>
 
                     <!-- EMA & date -->
@@ -736,90 +861,95 @@
                                 </menu>
                             </select>
                         </div>
-
-                        <div class="dateFrom">
-                            <div class="date-row" style="margin-top:6px;">
-                                <input type="date" class="form-control" id="datePickerF" />
-                            </div>
-
-                            <div class="time-row" style="margin-top:8px;">
-                                <select id="hourPickerF" aria-haspopup="menu" value="01" node="11" class="form-select">
-                                    <menu>
-                                        <option value="01" selected node="407">01</option>
-                                        <option value="02" node="410">02</option>
-                                        <option value="03" node="413">03</option>
-                                        <option value="04" node="416">04</option>
-                                        <option value="05" node="419">05</option>
-                                        <option value="06" node="422">06</option>
-                                        <option value="07" node="425">07</option>
-                                        <option value="08" node="428">08</option>
-                                        <option value="09" node="431">09</option>
-                                        <option value="10" node="434">10</option>
-                                        <option value="11" node="437">11</option>
-                                        <option value="12" node="440">12</option>
-                                    </menu>
-                                </select>
-                                <select id="minutePickerF" aria-haspopup="menu" value="00" node="12"
-                                    class="form-select">
-                                    <menu>
-                                        <option value="00" selected node="449">00</option>
-                                        <option value="15" node="452">15</option>
-                                        <option value="30" node="455">30</option>
-                                        <option value="45" node="458">45</option>
-                                    </menu>
-                                </select>
-                                <select id="AMPMPickerF" aria-haspopup="menu" value="AM" node="13" class="form-select">
-                                    <menu>
-                                        <option value="AM" selected node="467">AM</option>
-                                        <option value="PM" node="470">PM</option>
-                                    </menu>
-                                </select>
+                        <div class="dateFromTo">
+                            <div class="dateFrom">
                                 <div class="date-row" style="margin-top:6px;">
-                                    <input type="hidden" id="exactTimeF">
+                                    <input type="date" class="form-control" id="datePickerF" />
                                 </div>
 
-                            </div>
-                        </div>
+                                <div class="time-row" style="margin-top:8px;">
+                                    <select id="hourPickerF" aria-haspopup="menu" value="01" node="11"
+                                        class="form-select">
+                                        <menu>
+                                            <option value="01" selected node="407">01</option>
+                                            <option value="02" node="410">02</option>
+                                            <option value="03" node="413">03</option>
+                                            <option value="04" node="416">04</option>
+                                            <option value="05" node="419">05</option>
+                                            <option value="06" node="422">06</option>
+                                            <option value="07" node="425">07</option>
+                                            <option value="08" node="428">08</option>
+                                            <option value="09" node="431">09</option>
+                                            <option value="10" node="434">10</option>
+                                            <option value="11" node="437">11</option>
+                                            <option value="12" node="440">12</option>
+                                        </menu>
+                                    </select>
+                                    <select id="minutePickerF" aria-haspopup="menu" value="00" node="12"
+                                        class="form-select">
+                                        <menu>
+                                            <option value="00" selected node="449">00</option>
+                                            <option value="15" node="452">15</option>
+                                            <option value="30" node="455">30</option>
+                                            <option value="45" node="458">45</option>
+                                        </menu>
+                                    </select>
+                                    <select id="AMPMPickerF" aria-haspopup="menu" value="AM" node="13"
+                                        class="form-select">
+                                        <menu>
+                                            <option value="AM" selected node="467">AM</option>
+                                            <option value="PM" node="470">PM</option>
+                                        </menu>
+                                    </select>
+                                    <div class="date-row" style="margin-top:6px;">
+                                        <input type="hidden" id="exactTimeF">
+                                    </div>
 
-                        <div class="dateTo">
-                            <div class="date-row" style="margin-top:6px;">
-                                <input type="date" class="form-control" id="datePickerT" />
+                                </div>
                             </div>
 
-                            <div class="time-row" style="margin-top:8px;">
-                                <select id="hourPickerT" aria-haspopup="menu" value="01" node="11" class="form-select">
-                                    <menu>
-                                        <option value="01" selected node="407">01</option>
-                                        <option value="02" node="410">02</option>
-                                        <option value="03" node="413">03</option>
-                                        <option value="04" node="416">04</option>
-                                        <option value="05" node="419">05</option>
-                                        <option value="06" node="422">06</option>
-                                        <option value="07" node="425">07</option>
-                                        <option value="08" node="428">08</option>
-                                        <option value="09" node="431">09</option>
-                                        <option value="10" node="434">10</option>
-                                        <option value="11" node="437">11</option>
-                                        <option value="12" node="440">12</option>
-                                    </menu>
-                                </select>
-                                <select id="minutePickerT" aria-haspopup=" menu" value="00" node="12"
-                                    class="form-select">
-                                    <menu>
-                                        <option value="00" selected node="449">00</option>
-                                        <option value="15" node="452">15</option>
-                                        <option value="30" node="455">30</option>
-                                        <option value="45" node="458">45</option>
-                                    </menu>
-                                </select>
-                                <select id="AMPMPickerT" aria-haspopup="menu" value="AM" node="13" class="form-select">
-                                    <menu>
-                                        <option value="AM" selected node="467">AM</option>
-                                        <option value="PM" node="470">PM</option>
-                                    </menu>
-                                </select>
+                            <div class="dateTo">
                                 <div class="date-row" style="margin-top:6px;">
-                                    <input type="hidden" id="exactTimeT">
+                                    <input type="date" class="form-control" id="datePickerT" />
+                                </div>
+
+                                <div class="time-row" style="margin-top:8px;">
+                                    <select id="hourPickerT" aria-haspopup="menu" value="01" node="11"
+                                        class="form-select">
+                                        <menu>
+                                            <option value="01" selected node="407">01</option>
+                                            <option value="02" node="410">02</option>
+                                            <option value="03" node="413">03</option>
+                                            <option value="04" node="416">04</option>
+                                            <option value="05" node="419">05</option>
+                                            <option value="06" node="422">06</option>
+                                            <option value="07" node="425">07</option>
+                                            <option value="08" node="428">08</option>
+                                            <option value="09" node="431">09</option>
+                                            <option value="10" node="434">10</option>
+                                            <option value="11" node="437">11</option>
+                                            <option value="12" node="440">12</option>
+                                        </menu>
+                                    </select>
+                                    <select id="minutePickerT" aria-haspopup=" menu" value="00" node="12"
+                                        class="form-select">
+                                        <menu>
+                                            <option value="00" selected node="449">00</option>
+                                            <option value="15" node="452">15</option>
+                                            <option value="30" node="455">30</option>
+                                            <option value="45" node="458">45</option>
+                                        </menu>
+                                    </select>
+                                    <select id="AMPMPickerT" aria-haspopup="menu" value="AM" node="13"
+                                        class="form-select">
+                                        <menu>
+                                            <option value="AM" selected node="467">AM</option>
+                                            <option value="PM" node="470">PM</option>
+                                        </menu>
+                                    </select>
+                                    <div class="date-row" style="margin-top:6px;">
+                                        <input type="hidden" id="exactTimeT">
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -926,7 +1056,7 @@
 
 
             const params = new URLSearchParams({ symbol, type, tf, minspike, minvolume, minchange, minrange, typedate, exactTimeF, exactTimeT, emaHit });
-            const url = `http://34.80.104.70/api/candles?${params.toString()}`;
+            const url = `http://34.80.104.70:3000/api/candles?${params.toString()}`;
 
             try {
                 const res = await fetch(url);
@@ -949,7 +1079,7 @@
                     tr.innerHTML = `
                 <td data-label="Time">${row.open_time}</td>
                 <td data-label="Symbol">${row.symbol}</td>
-                <td class="center"><span class="${badgeClass}">${type}</span></td>
+                <td class="center" data-label="Type"><span class="${badgeClass}">${type}</span></td>
                 <td class="numeric" data-label="Vol (M)">${row.volume}</td>
                 <td class="numeric" data-label="Avg Vol (M)">${row.avg_volume}</td>
                 <td class="numeric" data-label="Spike">${row.volume_spike.toFixed(2)}</td>
@@ -988,6 +1118,10 @@
                 document.getElementById("exactTimeT").value = "";
 
                 updateDateToVisibility();
+                const filterCard = document.querySelector(".card:first-of-type");
+                if (filterCard.classList.contains("expanded")) {
+                    filterCard.classList.remove("expanded");
+                }
             } catch (err) {
                 console.error(err);
                 document.getElementById("status").textContent = "Error loading data";
